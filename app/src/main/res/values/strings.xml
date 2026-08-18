@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">sparcrk灵愿</string>
+    <string name="app_title">sparcrk灵愿</string>
+    <string name="hint_paste_url">粘贴视频链接...</string>
+    <string name="btn_download">下载视频</string>
+    <string name="btn_paste">粘贴</string>
+    <string name="btn_cancel">取消</string>
+    <string name="downloading">下载中...</string>
+    <string name="download_complete">下载完成</string>
+    <string name="download_failed">下载失败</string>
+    <string name="parsing_video">正在解析视频...</string>
+    <string name="video_title">视频标题</string>
+    <string name="video_thumbnail">视频缩略图</string>
+    <string name="quality_select">选择画质</string>
+    <string name="download_progress">下载进度</string>
+    <string name="downloads">下载记录</string>
+    <string name="settings">设置</string>
+    <string name="storage_location">存储位置</string>
+    <string name="supported_platforms">支持平台</string>
+    <string name="user_default">用户</string>
+    <string name="logout">退出</string>
+    <string name="vip_expire">会员到期: 暂无</string>
+    <string name="remaining_downloads">剩余下载: 0 次</string>
+    <string name="feature_video_download">视频下载</string>
+    <string name="feature_video_download_desc">链接解析 · 下载任务管理 · 本地视频浏览</string>
+    <string name="feature_coming_soon">更多功能</string>
+    <string name="feature_coming_soon_desc">敬请期待...</string>
+</resources>
