@@ -14,13 +14,27 @@ android {
         minSdk 26
         targetSdk 36
         versionCode 1
-        versionName "1.0"
+        versionName "1.0 预览版"
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // PDFBox/POI/log4j 的 jar 重复包含 META-INF 资源，统一排除避免打包冲突
+    packaging {
+        resources {
+            excludes += [
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/INDEX.LIST'
+            ]
         }
     }
 
