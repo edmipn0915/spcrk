@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.spcrk.app.data.ChatMessage
 import com.spcrk.app.data.DownloadHistory
 import com.spcrk.app.data.Note
-import com.spcrk.app.VideoDownloaderApp
+import com.spcrk.app.getAppContainer
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 data class SearchResult(
@@ -29,7 +31,7 @@ data class SearchUiState(
 )
 
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as VideoDownloaderApp).repository
+    private val repository = getAppContainer(application).repository
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
@@ -47,10 +49,9 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repository.getConversations().collect { conversationIds ->
                 val convMap = mutableMapOf<String, List<ChatMessage>>()
-                conversationIds.forEach { convId ->
-                    repository.getConversation(convId).collect { messages ->
-                        convMap[convId] = messages
-                    }
+                for (convId in conversationIds) {
+                    val messages = repository.getConversation(convId).firstOrNull() ?: emptyList()
+                    convMap[convId] = messages
                 }
                 allConversations = convMap
             }

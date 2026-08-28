@@ -1,5 +1,6 @@
 package com.spcrk.app.ui
 
+import android.app.Application
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,42 +20,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.spcrk.app.ai.DocumentManager
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.KnowledgeCategory
 import com.spcrk.app.data.KnowledgeDocument
-import com.spcrk.app.data.Repository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KnowledgeScreen(navController: NavController) {
-    val context = LocalContext.current
-    val applicationContext = context.applicationContext
-    val repository = remember { Repository(applicationContext) }
+fun KnowledgeScreen(
+    navController: androidx.navigation.NavController,
+    viewModel: KnowledgeViewModel = viewModel(factory = KnowledgeViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
+) {
+    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var searchQuery by remember { mutableStateOf("") }
-    var isSearching by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
-    var showCategorySelector by remember { mutableStateOf(false) }
-    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
-    var uploadCategoryId by remember { mutableStateOf<Long?>(null) }
-
-    val categories by repository.getAllCategories().collectAsState(initial = emptyList())
-
-    val documents by when {
-        isSearching && searchQuery.isNotEmpty() -> repository.searchKnowledgeDocuments(searchQuery)
-        selectedCategoryId != null -> repository.getKnowledgeDocumentsByCategory(selectedCategoryId!!)
-        else -> repository.getAllKnowledgeDocuments()
-    }.collectAsState(initial = emptyList())
-
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            errorMessage = null
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearError()
         }
     }
 
@@ -62,25 +46,7 @@ fun KnowledgeScreen(navController: NavController) {
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            scope.launch {
-                try {
-                    val docManager = DocumentManager(applicationContext)
-                    val docInfo = docManager.loadDocument(it)
-                    repository.addKnowledgeDocument(
-                        KnowledgeDocument(
-                            title = docInfo.name,
-                            content = docInfo.content,
-                            filePath = docInfo.uri,
-                            fileType = docInfo.name.substringAfterLast('.', "unknown"),
-                            chunkCount = 1,
-                            categoryId = uploadCategoryId
-                        )
-                    )
-                    uploadCategoryId = null
-                } catch (e: Exception) {
-                    errorMessage = e.message ?: "文件上传失败"
-                }
-            }
+            viewModel.uploadDocument(it)
         }
     }
 
@@ -89,7 +55,7 @@ fun KnowledgeScreen(navController: NavController) {
             TopAppBar(
                 title = { Text("知识库") },
                 actions = {
-                    IconButton(onClick = { isSearching = !isSearching }) {
+                    IconButton(onClick = { viewModel.toggleSearch(!uiState.isSearching) }) {
                         Icon(Icons.Default.Search, contentDescription = "搜索")
                     }
                 }
@@ -97,9 +63,9 @@ fun KnowledgeScreen(navController: NavController) {
         },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
-                if (showCategorySelector) {
+                if (uiState.showCategorySelector) {
                     FloatingActionButton(
-                        onClick = { showAddCategoryDialog = true },
+                        onClick = { viewModel.showAddCategoryDialog(true) },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
@@ -107,24 +73,20 @@ fun KnowledgeScreen(navController: NavController) {
                     }
                     FloatingActionButton(
                         onClick = {
-                            showCategorySelector = false
+                            viewModel.setShowCategorySelector(false)
                             launcher.launch("*/*")
                         },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Icon(Icons.Default.NoteAdd, contentDescription="上传文档")
+                        Icon(Icons.Default.NoteAdd, contentDescription = "上传文档")
                     }
                 }
                 FloatingActionButton(onClick = {
-                    if (showCategorySelector) {
-                        showCategorySelector = false
-                    } else {
-                        showCategorySelector = true
-                    }
+                    viewModel.setShowCategorySelector(!uiState.showCategorySelector)
                 }) {
                     Icon(
-                        if (showCategorySelector) Icons.Default.Close else Icons.Default.Add,
+                        if (uiState.showCategorySelector) Icons.Default.Close else Icons.Default.Add,
                         contentDescription = "添加"
                     )
                 }
@@ -143,15 +105,15 @@ fun KnowledgeScreen(navController: NavController) {
             ) {
                 item {
                     FilterChip(
-                        selected = selectedCategoryId == null,
-                        onClick = { selectedCategoryId = null },
+                        selected = uiState.selectedCategoryId == null,
+                        onClick = { viewModel.setSelectedCategoryId(null) },
                         label = { Text("全部") }
                     )
                 }
-                items(categories) { category ->
+                items(uiState.categories) { category ->
                     FilterChip(
-                        selected = selectedCategoryId == category.id,
-                        onClick = { selectedCategoryId = category.id },
+                        selected = uiState.selectedCategoryId == category.id,
+                        onClick = { viewModel.setSelectedCategoryId(category.id) },
                         label = { Text(category.name) },
                         trailingIcon = {
                             Icon(
@@ -161,10 +123,7 @@ fun KnowledgeScreen(navController: NavController) {
                                     .size(16.dp)
                                     .clickable {
                                         scope.launch {
-                                            repository.deleteCategory(category)
-                                            if (selectedCategoryId == category.id) {
-                                                selectedCategoryId = null
-                                            }
+                                            viewModel.deleteCategory(category)
                                         }
                                     }
                             )
@@ -173,18 +132,18 @@ fun KnowledgeScreen(navController: NavController) {
                 }
             }
 
-            if (isSearching) {
+            if (uiState.isSearching) {
                 OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    value = uiState.searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("搜索文档...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                        if (uiState.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
                                 Icon(Icons.Default.Clear, contentDescription = "清除")
                             }
                         }
@@ -193,7 +152,7 @@ fun KnowledgeScreen(navController: NavController) {
                 )
             }
 
-            if (documents.isEmpty()) {
+            if (uiState.documents.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -207,11 +166,11 @@ fun KnowledgeScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = (if (isSearching) "未找到相关文档" else if (selectedCategoryId != null) "该分类下暂无文档" else "知识库为空"),
+                            text = (if (uiState.isSearching) "未找到相关文档" else if (uiState.selectedCategoryId != null) "该分类下暂无文档" else "知识库为空"),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                        if (!isSearching && selectedCategoryId == null) {
+                        if (!uiState.isSearching && uiState.selectedCategoryId == null) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "点击右下角按钮上传文档或新建分类",
@@ -226,13 +185,13 @@ fun KnowledgeScreen(navController: NavController) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(documents) { doc ->
+                    items(uiState.documents) { doc ->
                         KnowledgeDocumentItem(
                             document = doc,
-                            category = categories.find { it.id == doc.categoryId },
+                            category = uiState.categories.find { it.id == doc.categoryId },
                             onDelete = {
                                 scope.launch {
-                                    repository.deleteKnowledgeDocument(doc)
+                                    viewModel.deleteDocument(doc)
                                 }
                             },
                             onClick = {}
@@ -243,16 +202,12 @@ fun KnowledgeScreen(navController: NavController) {
         }
     }
 
-    if (showAddCategoryDialog) {
+    if (uiState.showAddCategoryDialog) {
         AddCategoryDialog(
-            onDismiss = { showAddCategoryDialog = false },
+            onDismiss = { viewModel.showAddCategoryDialog(false) },
             onConfirm = { name, type ->
-                scope.launch {
-                    repository.addCategory(
-                        KnowledgeCategory(name = name, type = type)
-                    )
-                }
-                showAddCategoryDialog = false
+                viewModel.addCategory(name, type)
+                viewModel.showAddCategoryDialog(false)
             }
         )
     }

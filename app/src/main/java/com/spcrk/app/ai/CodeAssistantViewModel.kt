@@ -1,10 +1,11 @@
-﻿package com.spcrk.app.ai
+package com.spcrk.app.ai
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.ModelConfigStore
-import com.spcrk.app.data.SettingsStore
+import com.spcrk.app.data.model.ModelConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,9 @@ data class CodeUiState(
 )
 
 class CodeAssistantViewModel(application: Application) : AndroidViewModel(application) {
-    private val modelStore = ModelConfigStore(application)
+    private val container = getAppContainer(application)
+    private val modelStore = container.modelConfigStore
+    private val settingsStore = container.settingsStore
     private val aiManager = AIManager()
     private val _uiState = MutableStateFlow(CodeUiState())
     val uiState: StateFlow<CodeUiState> = _uiState.asStateFlow()
@@ -27,14 +30,7 @@ class CodeAssistantViewModel(application: Application) : AndroidViewModel(applic
         _uiState.value = _uiState.value.copy(question = q)
     }
 
-    /** 优先使用设置中选定的默认模型，其次第一条启用的配置。 */
-    private fun selectedConfig(): ModelConfig? {
-        val enabled = modelStore.getEnabledConfigs()
-        val defaultId = SettingsStore.getInstance().defaultModelIdFlow.value
-        return enabled.find { it.id == defaultId }
-            ?: modelStore.getDefault()
-            ?: enabled.firstOrNull()
-    }
+    fun selectedConfig(): ModelConfig? = modelStore.resolveSelectedConfig(settingsStore.defaultModelIdFlow.value)
 
     fun ask() {
         val question = _uiState.value.question.trim()

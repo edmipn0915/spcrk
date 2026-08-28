@@ -11,9 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.data.SettingsStore
-import com.spcrk.app.data.ModelConfigStore
-import com.spcrk.app.data.Repository
+import com.spcrk.app.getAppContainer
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +20,7 @@ fun DataSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val settingsStore = remember { SettingsStore.getInstance() }
+    val settingsStore = getAppContainer(context).settingsStore
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 

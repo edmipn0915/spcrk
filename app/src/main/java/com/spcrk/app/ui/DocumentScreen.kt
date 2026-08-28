@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,36 +20,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.spcrk.app.ai.DocumentInfo
-import com.spcrk.app.ai.DocumentManager
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.spcrk.app.data.KnowledgeDocument
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechSecondaryButton
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: DocumentViewModel = viewModel(factory = DocumentViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
-    val context = LocalContext.current
-    val documentManager = remember { DocumentManager(context) }
-    val documents = remember { mutableStateListOf<DocumentInfo>() }
+    val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
-    var isLoading by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val documentPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
-            scope.launch {
-                isLoading = true
-                val doc = documentManager.loadDocument(it)
-                documents.add(doc)
-                isLoading = false
-            }
+            val filePath = it.path ?: return@let
+            viewModel.loadDocument(filePath)
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearError()
         }
     }
 
@@ -102,6 +102,7 @@ fun DocumentScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
@@ -110,12 +111,12 @@ fun DocumentScreen(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
         ) {
-            if (isLoading) {
+            if (uiState.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.primary
                 )
-            } else if (documents.isEmpty()) {
+            } else if (uiState.documents.isEmpty()) {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -144,15 +145,12 @@ fun DocumentScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(
-                        items = documents,
-                        key = { it.uri }
+                        items = uiState.documents,
+                        key = { it.id }
                     ) { doc ->
                         DocumentItem(
                             document = doc,
-                            onDelete = {
-                                documentManager.removeDocument(doc.uri)
-                                documents.remove(doc)
-                            }
+                            onDelete = { viewModel.removeDocument(doc.filePath) }
                         )
                     }
                 }
@@ -163,7 +161,7 @@ fun DocumentScreen(
 
 @Composable
 private fun DocumentItem(
-    document: DocumentInfo,
+    document: KnowledgeDocument,
     onDelete: () -> Unit
 ) {
     TechCard(
@@ -179,7 +177,7 @@ private fun DocumentItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = document.name,
+                    text = document.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
@@ -188,13 +186,13 @@ private fun DocumentItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = formatFileSize(document.size),
+                    text = document.fileType,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = formatDate(document.uploadedAt),
+                    text = formatDate(document.createdAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -208,15 +206,6 @@ private fun DocumentItem(
                 )
             }
         }
-    }
-}
-
-private fun formatFileSize(size: Long): String {
-    return when {
-        size < 1024 -> "$size B"
-        size < 1024 * 1024 -> "${size / 1024} KB"
-        size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
-        else -> "${size / (1024 * 1024 * 1024)} GB"
     }
 }
 

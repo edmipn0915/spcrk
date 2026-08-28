@@ -1,16 +1,15 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.*
-import com.spcrk.app.MainActivity
-import com.spcrk.app.VideoDownloaderApp
+import com.spcrk.app.AppContainer
+import com.spcrk.app.SCHEDULE_CHANNEL_ID
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.ScheduledTask
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +29,8 @@ enum class SchedulePreset {
 }
 
 class ScheduleViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as VideoDownloaderApp).repository
+    private val container: AppContainer = getAppContainer(application)
+    private val repository = container.repository
     private val workManager = WorkManager.getInstance(application)
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
@@ -242,23 +242,12 @@ class ScheduledTaskWorker(
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            taskId.toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(context, VideoDownloaderApp.SCHEDULE_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, SCHEDULE_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("定时任务执行")
             .setContentText("任务「$taskName」已执行：$action")
             .setStyle(NotificationCompat.BigTextStyle().bigText("任务「$taskName」已执行：$action\n参数：$actionParams"))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
 

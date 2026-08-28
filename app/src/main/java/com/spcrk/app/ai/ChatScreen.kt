@@ -1,4 +1,4 @@
-package com.spcrk.app.ai
+package com.spcrk.app.ui.ai
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,6 +48,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.spcrk.app.ai.ChatViewModel
+import com.spcrk.app.ai.SkillDisplayItem
+import com.spcrk.app.ai.AgentStep
+import com.spcrk.app.ai.AgentStepType
+import com.spcrk.app.ai.AgentStepStatus
+import com.spcrk.app.ai.Message
+import com.spcrk.app.ai.McpToolCallInfo
+import com.spcrk.app.ai.ConversationSummary
 import com.spcrk.app.ui.theme.LocalSuccessColor
 import com.spcrk.app.ui.theme.TechTextField
 import com.spcrk.app.ui.theme.glass
@@ -325,7 +333,7 @@ fun ChatScreen(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 SkillSelectorPanel(
-                    skillManager = viewModel.getSkillManager(),
+                    skillDisplayItems = viewModel.skillDisplayItems,
                     onSkillSelected = { trigger ->
                         showSkillSelector = false
                         viewModel.updateInput("/$trigger ")
@@ -627,18 +635,10 @@ private fun AttachmentStatusBar(
 
 @Composable
 private fun SkillSelectorPanel(
-    skillManager: SkillManager,
+    skillDisplayItems: kotlinx.coroutines.flow.Flow<List<SkillDisplayItem>>,
     onSkillSelected: (String) -> Unit
 ) {
-    val skills = remember { mutableStateOf<List<SkillDisplayItem>>(emptyList()) }
-
-    LaunchedEffect(Unit) {
-        skillManager.getAllSkills().collect { skillList ->
-            skills.value = skillList.map {
-                SkillDisplayItem(it.trigger, it.name, it.description)
-            }
-        }
-    }
+    val skills by skillDisplayItems.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
@@ -652,7 +652,7 @@ private fun SkillSelectorPanel(
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        if (skills.value.isEmpty()) {
+        if (skills.isEmpty()) {
             Text(
                 text = "暂无已安装的 Skill",
                 style = MaterialTheme.typography.bodyMedium,
@@ -660,7 +660,7 @@ private fun SkillSelectorPanel(
                 modifier = Modifier.padding(vertical = 16.dp)
             )
         } else {
-            skills.value.forEach { skill ->
+            skills.forEach { skill ->
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -707,12 +707,6 @@ private fun SkillSelectorPanel(
         }
     }
 }
-
-private data class SkillDisplayItem(
-    val trigger: String,
-    val name: String,
-    val description: String
-)
 
 @Composable
 private fun MessageBubble(

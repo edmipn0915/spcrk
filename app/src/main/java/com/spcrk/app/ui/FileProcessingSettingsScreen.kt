@@ -9,7 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.SettingsStore
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -17,7 +19,7 @@ import com.spcrk.app.data.SettingsStore
 fun FileProcessingSettingsScreen(
     onBackClick: () -> Unit
 ) {
-    val settingsStore = remember { SettingsStore.getInstance() }
+    val settingsStore = getAppContainer(LocalContext.current).settingsStore
     val ocrEngine by settingsStore.ocrEngineFlow.collectAsState(initial = "mlkit")
     val pdfRenderer by settingsStore.pdfRendererFlow.collectAsState(initial = "pdfbox")
 

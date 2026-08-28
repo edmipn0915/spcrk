@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,7 +31,7 @@ fun NoteListScreen(
     onBackClick: () -> Unit,
     onNoteClick: (Long) -> Unit,
     onNewNote: () -> Unit,
-    viewModel: NoteListViewModel = viewModel()
+    viewModel: NoteListViewModel = viewModel(factory = NoteListViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

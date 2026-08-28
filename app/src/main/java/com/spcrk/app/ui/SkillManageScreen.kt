@@ -18,32 +18,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.spcrk.app.ai.SkillManager
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.Skill
-import com.spcrk.app.VideoDownloaderApp
-import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SkillManageScreen(onBackClick: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val scope = rememberCoroutineScope()
-    val skillManager = remember { SkillManager(context.applicationContext as android.app.Application) }
-    var skills by remember { mutableStateOf<List<Skill>>(emptyList()) }
+fun SkillManageScreen(
+    onBackClick: () -> Unit,
+    viewModel: SkillManageViewModel = viewModel(factory = SkillManageViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
+) {
     var showAddDialog by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
-        skillManager.initializeBuiltInSkills()
-        skillManager.getAllSkills().collect { skillList ->
-            skills = skillList
-            isLoading = false
-        }
-    }
+    val uiState by viewModel.uiState.collectAsState()
+    val isLoading = uiState.isLoading
+    val skills = uiState.skills
 
     Scaffold(
         topBar = {
@@ -118,14 +111,10 @@ fun SkillManageScreen(onBackClick: () -> Unit) {
                     SkillItem(
                         skill = skill,
                         onToggle = { enabled ->
-                            scope.launch {
-                                skillManager.enableSkill(skill.id, enabled)
-                            }
+                            viewModel.enableSkill(skill, enabled)
                         },
                         onDelete = {
-                            scope.launch {
-                                skillManager.uninstallSkill(skill.id)
-                            }
+                            viewModel.deleteSkill(skill)
                         }
                     )
                 }
@@ -137,21 +126,19 @@ fun SkillManageScreen(onBackClick: () -> Unit) {
         AddSkillDialog(
             onDismiss = { showAddDialog = false },
             onConfirm = { name, description, trigger, action, url, prefix, suffix ->
-                scope.launch {
-                    val config = JSONObject().apply {
-                        put("action", action)
-                        if (url.isNotEmpty()) put("url", url)
-                        if (prefix.isNotEmpty()) put("prefix", prefix)
-                        if (suffix.isNotEmpty()) put("suffix", suffix)
-                    }
-                    val skill = Skill(
-                        name = name,
-                        description = description,
-                        trigger = trigger,
-                        config = config.toString()
-                    )
-                    skillManager.installSkill(skill)
+                val config = JSONObject().apply {
+                    put("action", action)
+                    if (url.isNotEmpty()) put("url", url)
+                    if (prefix.isNotEmpty()) put("prefix", prefix)
+                    if (suffix.isNotEmpty()) put("suffix", suffix)
                 }
+                val skill = Skill(
+                    name = name,
+                    description = description,
+                    trigger = trigger,
+                    config = config.toString()
+                )
+                viewModel.addSkill(skill)
                 showAddDialog = false
             }
         )

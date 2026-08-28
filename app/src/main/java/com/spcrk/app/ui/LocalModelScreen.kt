@@ -16,51 +16,69 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.ai.EmbeddingModelInfo
-import com.spcrk.app.ai.LocalModelInfo
-import com.spcrk.app.ai.LocalModelManager
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.spcrk.app.ai.api.EmbeddingModelInfo
+import com.spcrk.app.ai.api.LocalModelInfo
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalModelScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: LocalModelViewModel = viewModel(factory = LocalModelViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
-    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val modelManager = remember { LocalModelManager(context) }
 
     var selectedTab by remember { mutableStateOf(0) }
-    var embeddingModels by remember { mutableStateOf(modelManager.getAvailableEmbeddingModels()) }
-    var llmModels by remember { mutableStateOf(modelManager.getAvailableLLMModels()) }
-    var downloadedModels by remember { mutableStateOf(modelManager.getDownloadedModels()) }
-    var downloadingIds by remember { mutableStateOf(setOf<String>()) }
-    var downloadProgress by remember { mutableStateOf(mapOf<String, Float>()) }
     var showImportMenu by remember { mutableStateOf(false) }
     var showUrlDownloadDialog by remember { mutableStateOf(false) }
     var downloadUrl by remember { mutableStateOf("") }
     var downloadFileName by remember { mutableStateOf("") }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    fun refreshModels() {
-        embeddingModels = modelManager.getAvailableEmbeddingModels()
-        llmModels = modelManager.getAvailableLLMModels()
-        downloadedModels = modelManager.getDownloadedModels()
-    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             scope.launch {
-                val success = modelManager.importLocalFile(it)
+                val success = viewModel.importLocalFile(it)
                 if (success) {
                     snackbarHostState.showSnackbar("模型导入成功")
-                    refreshModels()
                 } else {
                     snackbarHostState.showSnackbar("模型导入失败")
                 }
             }
+        }
+    }
+
+    fun downloadModelById(
+        modelId: String,
+        url: String,
+        fileName: String
+    ) {
+        scope.launch {
+            val alreadyDownloaded = viewModel.isModelDownloaded(fileName)
+            if (alreadyDownloaded) {
+                snackbarHostState.showSnackbar("模型已存在")
+                return@launch
+            }
+            viewModel.downloadModel(
+                url = url,
+                fileName = fileName,
+                onProgress = { _, progress ->
+                    // Progress is tracked internally via uiState
+                },
+                onComplete = { _, success ->
+                    scope.launch {
+                        if (success) {
+                            snackbarHostState.showSnackbar("下载完成")
+                        } else {
+                            snackbarHostState.showSnackbar("下载失败")
+                        }
+                    }
+                }
+            )
         }
     }
 
@@ -154,105 +172,51 @@ fun LocalModelScreen(
 
             when (selectedTab) {
                 0 -> EmbeddingModelTab(
-                    models = embeddingModels,
-                    downloadedModels = downloadedModels,
-                    downloadingIds = downloadingIds,
-                    downloadProgress = downloadProgress,
+                    models = uiState.embeddingModels,
+                    downloadedModels = uiState.downloadedModels,
+                    downloadingIds = uiState.downloadingIds,
+                    downloadProgress = uiState.downloadProgress,
                     onDownload = { model ->
                         val fileName = "${model.id}.gguf"
-                        if (modelManager.isModelDownloaded(fileName)) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("模型已存在")
-                            }
-                        } else {
-                            downloadingIds = downloadingIds + model.id
-                            scope.launch {
-                                modelManager.downloadModel(
-                                    url = model.downloadUrl,
-                                    fileName = fileName,
-                                    onProgress = { progress ->
-                                        downloadProgress = downloadProgress + (model.id to progress)
-                                    },
-                                    onComplete = { success ->
-                                        downloadingIds = downloadingIds - model.id
-                                        downloadProgress = downloadProgress - model.id
-                                        scope.launch {
-                                            if (success) {
-                                                snackbarHostState.showSnackbar("${model.name} 下载完成")
-                                                refreshModels()
-                                            } else {
-                                                snackbarHostState.showSnackbar("${model.name} 下载失败")
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
+                        val url = model.downloadUrl
+                        downloadModelById(model.id, url, fileName)
                     },
                     onDelete = { model ->
                         val fileName = "${model.id}.gguf"
-                        if (modelManager.deleteModel(fileName)) {
+                        if (viewModel.deleteModel(fileName)) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("${model.name} 已删除")
                             }
-                            refreshModels()
                         }
                     }
                 )
                 1 -> LLMModelTab(
-                    models = llmModels,
-                    downloadedModels = downloadedModels,
-                    downloadingIds = downloadingIds,
-                    downloadProgress = downloadProgress,
+                    models = uiState.llmModels,
+                    downloadedModels = uiState.downloadedModels,
+                    downloadingIds = uiState.downloadingIds,
+                    downloadProgress = uiState.downloadProgress,
                     onDownload = { model ->
                         val fileName = "${model.id}.gguf"
-                        if (modelManager.isModelDownloaded(fileName)) {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("模型已存在")
-                            }
-                        } else {
-                            downloadingIds = downloadingIds + model.id
-                            scope.launch {
-                                modelManager.downloadModel(
-                                    url = model.downloadUrl,
-                                    fileName = fileName,
-                                    onProgress = { progress ->
-                                        downloadProgress = downloadProgress + (model.id to progress)
-                                    },
-                                    onComplete = { success ->
-                                        downloadingIds = downloadingIds - model.id
-                                        downloadProgress = downloadProgress - model.id
-                                        scope.launch {
-                                            if (success) {
-                                                snackbarHostState.showSnackbar("${model.name} 下载完成")
-                                                refreshModels()
-                                            } else {
-                                                snackbarHostState.showSnackbar("${model.name} 下载失败")
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
+                        val url = model.downloadUrl
+                        downloadModelById(model.id, url, fileName)
                     },
                     onDelete = { model ->
                         val fileName = "${model.id}.gguf"
-                        if (modelManager.deleteModel(fileName)) {
+                        if (viewModel.deleteModel(fileName)) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("${model.name} 已删除")
                             }
-                            refreshModels()
                         }
                     }
                 )
                 2 -> DownloadedModelTab(
-                    models = downloadedModels,
+                    models = uiState.downloadedModels,
                     onDelete = { model ->
-                        if (modelManager.deleteModel(model.filePath.substringAfterLast("/"))) {
+                        val fileName = model.filePath.substringAfterLast("/")
+                        if (viewModel.deleteModel(fileName)) {
                             scope.launch {
                                 snackbarHostState.showSnackbar("${model.name} 已删除")
                             }
-                            refreshModels()
                         }
                     }
                 )
@@ -267,28 +231,22 @@ fun LocalModelScreen(
             onConfirm = { url, fileName ->
                 showUrlDownloadDialog = false
                 val actualFileName = if (fileName.isBlank()) "downloaded_model.gguf" else fileName
-                downloadingIds = downloadingIds + actualFileName
-                scope.launch {
-                    modelManager.downloadModel(
-                        url = url,
-                        fileName = actualFileName,
-                        onProgress = { progress ->
-                            downloadProgress = downloadProgress + (actualFileName to progress)
-                        },
-                        onComplete = { success ->
-                            downloadingIds = downloadingIds - actualFileName
-                            downloadProgress = downloadProgress - actualFileName
+                viewModel.downloadModel(
+                    url = url,
+                    fileName = actualFileName,
+                    onProgress = { _, _ -> },
+                    onComplete = { _, success ->
+                        if (success) {
                             scope.launch {
-                                if (success) {
-                                    snackbarHostState.showSnackbar("下载完成")
-                                    refreshModels()
-                                } else {
-                                    snackbarHostState.showSnackbar("下载失败")
-                                }
+                                snackbarHostState.showSnackbar("下载完成")
+                            }
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("下载失败")
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         )
     }

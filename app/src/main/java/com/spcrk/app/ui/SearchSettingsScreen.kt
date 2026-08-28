@@ -22,7 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.ai.SearchConfig
-import com.spcrk.app.data.SettingsStore
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.ui.theme.TechCard
 
 data class SearchEngineInfo(
@@ -53,7 +53,7 @@ fun SearchSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val settingsStore = remember { SettingsStore.getInstance() }
+    val settingsStore = getAppContainer(context).settingsStore
 
     var config by remember {
         mutableStateOf(

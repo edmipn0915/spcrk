@@ -10,15 +10,16 @@ import com.spcrk.app.ui.theme.techRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.data.SettingsStore
+import com.spcrk.app.getAppContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DependenciesSettingsScreen(
     onBackClick: () -> Unit
 ) {
-    val settingsStore = remember { SettingsStore.getInstance() }
+    val settingsStore = getAppContainer(LocalContext.current).settingsStore
 
     val pythonPath by settingsStore.pythonPathFlow.collectAsState(initial = "")
     val nodePath by settingsStore.nodePathFlow.collectAsState(initial = "")

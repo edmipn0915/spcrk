@@ -1,5 +1,6 @@
 package com.spcrk.app.ui.navigation
 
+import android.app.Application
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -53,9 +55,9 @@ import com.spcrk.app.ui.McpSettingsScreen
 import com.spcrk.app.ui.LocalModelScreen
 import com.spcrk.app.ui.NotificationSettingsScreen
 import com.spcrk.app.ui.ProviderSettingsScreen
-import com.spcrk.app.ai.TranslateScreen
-import com.spcrk.app.ai.CodeAssistantScreen
-import com.spcrk.app.ai.ChatScreen
+import com.spcrk.app.ui.ai.TranslateScreen
+import com.spcrk.app.ui.ai.CodeAssistantScreen
+import com.spcrk.app.ui.ai.ChatScreen
 import com.spcrk.app.ui.theme.AnimationDistances
 import com.spcrk.app.ui.theme.fissionEnter
 import com.spcrk.app.ui.theme.fusionExit
@@ -225,7 +227,12 @@ fun AppNavigation(
                 AiChatScreen(navController = navController)
             }
             composable(Screen.Knowledge.route) {
-                KnowledgeScreen(navController = navController)
+                KnowledgeScreen(
+                    navController = navController,
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                        factory = com.spcrk.app.ui.KnowledgeViewModelFactory(LocalContext.current.applicationContext as Application)
+                    )
+                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(
@@ -279,10 +286,15 @@ fun AppNavigation(
                 ModelManageScreen(onBackClick = { navController.popBackStack() })
             }
             composable(Screen.McpManage.route) {
-                McpManageScreen(onBackClick = { navController.popBackStack() })
+                McpManageScreen(
+                    onBackClick = { navController.popBackStack() },
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                        factory = com.spcrk.app.ui.McpManageViewModelFactory(LocalContext.current.applicationContext as Application)
+                    )
+                )
             }
-            composable(Screen.SkillManage.route) {
-                SkillManageScreen(onBackClick = { navController.popBackStack() })
+            composable(Screen.SettingsMcp.route) {
+                McpSettingsScreen(onBackClick = { navController.popBackStack() })
             }
             composable(Screen.Stats.route) {
                 StatsScreen(onBackClick = { navController.popBackStack() })
@@ -300,11 +312,13 @@ fun AppNavigation(
             composable(Screen.Schedule.route) {
                 ScheduleScreen(onBackClick = { navController.popBackStack() })
             }
-            composable(Screen.SettingsMcp.route) {
-                McpManageScreen(onBackClick = { navController.popBackStack() })
-            }
             composable(Screen.SettingsSkills.route) {
-                SkillManageScreen(onBackClick = { navController.popBackStack() })
+                SkillManageScreen(
+                    onBackClick = { navController.popBackStack() },
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                        factory = com.spcrk.app.ui.SkillManageViewModelFactory(LocalContext.current.applicationContext as Application)
+                    )
+                )
             }
             composable(Screen.SettingsStats.route) {
                 StatsScreen(onBackClick = { navController.popBackStack() })
@@ -344,7 +358,12 @@ fun AppNavigation(
                 SearchSettingsScreen(onBackClick = { navController.popBackStack() })
             }
             composable(Screen.SettingsLocalModels.route) {
-                LocalModelScreen(onBackClick = { navController.popBackStack() })
+                LocalModelScreen(
+                    onBackClick = { navController.popBackStack() },
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                        factory = com.spcrk.app.ui.LocalModelViewModelFactory(LocalContext.current.applicationContext as Application)
+                    )
+                )
             }
             composable(Screen.VideoDownload.route) {
                 VideoDownloadScreen(onBackClick = { navController.popBackStack() })

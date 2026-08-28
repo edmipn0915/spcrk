@@ -1,4 +1,4 @@
-package com.spcrk.app.ui
+﻿package com.spcrk.app.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,11 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.ai.ModelConfig
+import com.spcrk.app.data.model.ModelConfig
+import com.spcrk.app.data.ModelConfigStore
 import com.spcrk.app.ai.presetModelsByProvider
 import com.spcrk.app.ai.providerBaseUrls
 import com.spcrk.app.ai.providerDisplayName
-import com.spcrk.app.data.ModelConfigStore
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechSecondaryButton
@@ -56,7 +57,7 @@ fun ProviderSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val store = remember { ModelConfigStore(context) }
+    val store = getAppContainer(context).modelConfigStore
 
     var configs by remember { mutableStateOf(store.loadConfigs()) }
     var providers by remember { mutableStateOf(store.getProviders()) }

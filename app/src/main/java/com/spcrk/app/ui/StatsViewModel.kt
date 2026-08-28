@@ -1,9 +1,9 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.spcrk.app.VideoDownloaderApp
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.UsageRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +43,7 @@ enum class TimePeriod {
 }
 
 class StatsViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as VideoDownloaderApp).repository
+    private val repository = getAppContainer(application).repository
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 

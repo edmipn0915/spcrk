@@ -1,20 +1,23 @@
-﻿package com.spcrk.app.ai
+package com.spcrk.app.ai
 
 import android.app.Application
+import com.spcrk.app.ai.api.SkillService
 import com.spcrk.app.data.Skill
 import com.spcrk.app.data.Repository
-import com.spcrk.app.VideoDownloaderApp
+import com.spcrk.app.getAppContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-class SkillManager(private val application: Application) {
-    private val repository = (application as VideoDownloaderApp).repository
+class SkillManager(private val application: Application) : SkillService {
+    private val repository = getAppContainer(application).repository
+    private val searchEngine = SearchEngine()
     private val skillTriggers = mutableMapOf<String, suspend (String) -> String>()
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -25,35 +28,31 @@ class SkillManager(private val application: Application) {
         registerBuiltInSkills()
     }
 
-    fun getAllSkills(): Flow<List<Skill>> = repository.getAllSkills()
+    override fun getAllSkills(): Flow<List<Skill>> = repository.getAllSkills()
 
-    suspend fun installSkill(skill: Skill) {
+    override suspend fun installSkill(skill: Skill) {
         repository.addSkill(skill)
         registerSkillTrigger(skill)
     }
 
-    suspend fun uninstallSkill(id: Long) {
-        val skills = repository.getAllSkills()
-        skills.collect { skillList ->
-            val skill = skillList.find { it.id == id }
-            if (skill != null) {
-                repository.deleteSkill(skill)
-                skillTriggers.remove(skill.trigger)
-            }
+    override suspend fun uninstallSkill(id: Long) {
+        val skillList: List<Skill> = repository.getAllSkills().first() ?: emptyList()
+        val skill = skillList.find { it.id == id }
+        if (skill != null) {
+            repository.deleteSkill(skill)
+            skillTriggers.remove(skill.trigger)
         }
     }
 
-    suspend fun enableSkill(id: Long, enabled: Boolean) {
-        val skills = repository.getAllSkills()
-        skills.collect { skillList ->
-            val skill = skillList.find { it.id == id }
-            if (skill != null) {
-                repository.updateSkill(skill.copy(isEnabled = enabled))
-            }
+    override suspend fun enableSkill(id: Long, enabled: Boolean) {
+        val skillList: List<Skill> = repository.getAllSkills().first() ?: emptyList()
+        val skill = skillList.find { it.id == id }
+        if (skill != null) {
+            repository.updateSkill(skill.copy(isEnabled = enabled))
         }
     }
 
-    suspend fun initializeBuiltInSkills() {
+    override suspend fun initializeBuiltInSkills() {
         val builtInSkills = listOf(
             Skill(
                 name = "天气查询",
@@ -159,24 +158,14 @@ class SkillManager(private val application: Application) {
     private fun executeNewsSkill(input: String): String {
         return try {
             val query = input.ifBlank { "latest news" }
-            val encodedQuery = URLEncoder.encode(query, "UTF-8")
-            val url = "https://html.duckduckgo.com/html/?q=$encodedQuery+news"
-            val request = Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return "新闻查询失败: HTTP ${response.code}"
-
-            val body = response.body?.string() ?: return "新闻查询失败: 空响应"
-            val results = parseSearchResults(body)
+            val results = searchEngine.searchDuckDuckGo("$query news", 5)
 
             if (results.isEmpty()) return "未找到相关新闻"
 
             buildString {
                 appendLine("📰 新闻摘要:")
                 appendLine()
-                results.take(5).forEachIndexed { index, result ->
+                results.take(5).forEachIndexed { index: Int, result: SearchResult ->
                     appendLine("${index + 1}. ${result.title}")
                     appendLine("   ${result.snippet}")
                     appendLine("   🔗 ${result.url}")
@@ -226,33 +215,6 @@ class SkillManager(private val application: Application) {
         }
     }
 
-    private fun parseSearchResults(html: String): List<SearchResult> {
-        val results = mutableListOf<SearchResult>()
-        val resultPattern = Regex(
-            """<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]*)"[^>]*>(.*?)</a>""",
-            RegexOption.IGNORE_CASE
-        )
-        val snippetPattern = Regex(
-            """<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>""",
-            RegexOption.IGNORE_CASE
-        )
-
-        val titles = resultPattern.findAll(html).toList()
-        val snippets = snippetPattern.findAll(html).toList()
-
-        titles.forEachIndexed { index, match ->
-            val url = match.groupValues[1]
-            val title = match.groupValues[2].replace(Regex("<[^>]+>"), "").trim()
-            val snippet = if (index < snippets.size) {
-                snippets[index].groupValues[1].replace(Regex("<[^>]+>"), "").trim()
-            } else ""
-            if (title.isNotEmpty() && url.isNotEmpty()) {
-                results.add(SearchResult(title, url, snippet))
-            }
-        }
-        return results
-    }
-
     private fun executeHttpRequest(config: JSONObject, input: String): String {
         return try {
             val url = config.optString("url", "").replace("{input}", URLEncoder.encode(input, "UTF-8"))
@@ -270,14 +232,14 @@ class SkillManager(private val application: Application) {
         return "$prefix$input$suffix"
     }
 
-    suspend fun triggerSkill(trigger: String, input: String): String {
+    override suspend fun triggerSkill(trigger: String, input: String): String {
         val handler = skillTriggers[trigger] ?: return "未找到 Skill: $trigger"
         return withContext(Dispatchers.IO) {
             handler(input)
         }
     }
 
-    fun getAllTriggers(): Map<String, suspend (String) -> String> {
+    override fun getAllTriggers(): Map<String, suspend (String) -> String> {
         return skillTriggers.toMap()
     }
 }

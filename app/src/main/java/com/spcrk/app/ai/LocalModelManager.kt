@@ -1,5 +1,8 @@
-﻿package com.spcrk.app.ai
+package com.spcrk.app.ai
 
+import com.spcrk.app.ai.api.EmbeddingModelInfo
+import com.spcrk.app.ai.api.LocalModelInfo
+import com.spcrk.app.ai.api.LocalModelService
 import android.content.Context
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
@@ -11,27 +14,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
-data class EmbeddingModelInfo(
-    val id: String,
-    val name: String,
-    val sizeMB: Int,
-    val isRecommended: Boolean = false,
-    val downloadUrl: String,
-    val source: String = "huggingface"
-)
-
-data class LocalModelInfo(
-    val id: String,
-    val name: String,
-    val type: String,
-    val sizeMB: Int,
-    val filePath: String,
-    val status: String,
-    val progress: Float = 0f,
-    val createdAt: Long = System.currentTimeMillis()
-)
-
-class LocalModelManager(private val context: Context) {
+class LocalModelManager(private val context: Context) : LocalModelService {
 
     val modelsDir: File get() = File(context.filesDir, "local_models")
 
@@ -47,7 +30,7 @@ class LocalModelManager(private val context: Context) {
         }
     }
 
-    fun getAvailableEmbeddingModels(): List<EmbeddingModelInfo> = listOf(
+    override fun getAvailableEmbeddingModels(): List<EmbeddingModelInfo> = listOf(
         EmbeddingModelInfo(
             id = "qwen-embedding-0.6B",
             name = "Qwen3 Embedding 0.6B",
@@ -74,7 +57,7 @@ class LocalModelManager(private val context: Context) {
         )
     )
 
-    fun getAvailableLLMModels(): List<EmbeddingModelInfo> = listOf(
+    override fun getAvailableLLMModels(): List<EmbeddingModelInfo> = listOf(
         EmbeddingModelInfo(
             id = "qwen2.5-1.5b-instruct",
             name = "Qwen2.5 1.5B Instruct",
@@ -101,7 +84,7 @@ class LocalModelManager(private val context: Context) {
         )
     )
 
-    fun getDownloadedModels(): List<LocalModelInfo> {
+    override fun getDownloadedModels(): List<LocalModelInfo> {
         if (!modelsDir.exists()) return emptyList()
 
         val embeddingModels = getAvailableEmbeddingModels().associateBy { it.id }
@@ -146,11 +129,11 @@ class LocalModelManager(private val context: Context) {
         } ?: emptyList()
     }
 
-    suspend fun downloadModel(
+    override suspend fun downloadModel(
         url: String,
         fileName: String,
-        onProgress: (Float) -> Unit = {},
-        onComplete: (Boolean) -> Unit = {}
+        onProgress: (Float) -> Unit,
+        onComplete: (Boolean) -> Unit
     ) {
         withContext(Dispatchers.IO) {
             try {
@@ -211,7 +194,7 @@ class LocalModelManager(private val context: Context) {
         }
     }
 
-    fun importLocalFile(uri: Uri): Boolean {
+    override fun importLocalFile(uri: Uri): Boolean {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return false
             val fileName = getFileNameFromUri(uri) ?: "imported_model.gguf"
@@ -242,7 +225,7 @@ class LocalModelManager(private val context: Context) {
         return fileName
     }
 
-    fun deleteModel(fileName: String): Boolean {
+    override fun deleteModel(fileName: String): Boolean {
         return try {
             val file = File(modelsDir, fileName)
             if (file.exists()) {
@@ -259,7 +242,7 @@ class LocalModelManager(private val context: Context) {
         return File(modelsDir, fileName).absolutePath
     }
 
-    fun isModelDownloaded(fileName: String): Boolean {
+    override fun isModelDownloaded(fileName: String): Boolean {
         return File(modelsDir, fileName).exists()
     }
 }

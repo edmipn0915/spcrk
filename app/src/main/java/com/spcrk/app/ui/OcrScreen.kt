@@ -33,39 +33,35 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.spcrk.app.ai.OcrManager
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechSecondaryButton
-import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+import android.app.Application
 import java.io.File
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OcrScreen(
     onBackClick: () -> Unit = {},
-    onSendToChat: (String) -> Unit = {}
+    onSendToChat: (String) -> Unit = {},
+    viewModel: OcrViewModel = viewModel(factory = OcrViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val ocrManager = remember { OcrManager(context) }
-
-    var selectedImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var recognizedText by remember { mutableStateOf("") }
-    var isRecognizing by remember { mutableStateOf(false) }
-    var recognizeChinese by remember { mutableStateOf(true) }
-    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
     var showLanguageSelector by remember { mutableStateOf(false) }
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            selectedImageBitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, it)
             scope.launch {
-                isRecognizing = true
-                recognizedText = ocrManager.recognizeText(it, recognizeChinese)
-                isRecognizing = false
+                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                viewModel.setSelectedImageBitmap(bitmap)
+                viewModel.recognizeImage(it)
             }
         }
     }
@@ -74,12 +70,10 @@ fun OcrScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success && tempPhotoUri != null) {
-            val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, tempPhotoUri)
-            selectedImageBitmap = bitmap
             scope.launch {
-                isRecognizing = true
-                recognizedText = ocrManager.recognizeText(tempPhotoUri!!, recognizeChinese)
-                isRecognizing = false
+                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, tempPhotoUri)
+                viewModel.setSelectedImageBitmap(bitmap)
+                viewModel.recognizeImage(tempPhotoUri!!)
             }
         }
     }
@@ -98,12 +92,6 @@ fun OcrScreen(
             cameraLauncher.launch(uri)
         } else {
             Toast.makeText(context, "需要相机权限才能拍照", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            ocrManager.close()
         }
     }
 
@@ -151,9 +139,9 @@ fun OcrScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (selectedImageBitmap != null) {
+                    if (uiState.selectedImageBitmap != null) {
                         Image(
-                            bitmap = selectedImageBitmap!!.asImageBitmap(),
+                            bitmap = uiState.selectedImageBitmap!!.asImageBitmap(),
                             contentDescription = "选中的图片",
                             modifier = Modifier
                                 .fillMaxSize()
@@ -211,8 +199,7 @@ fun OcrScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -231,7 +218,7 @@ fun OcrScreen(
                     Box {
                         TextButton(onClick = { showLanguageSelector = true }) {
                             Text(
-                                text = if (recognizeChinese) "中文" else "英文",
+                                text = if (uiState.showChinese) "中文" else "英文",
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -242,14 +229,14 @@ fun OcrScreen(
                             DropdownMenuItem(
                                 text = { Text("中文", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = {
-                                    recognizeChinese = true
+                                    viewModel.setRecognizeChinese(true)
                                     showLanguageSelector = false
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("英文", color = MaterialTheme.colorScheme.onSurface) },
                                 onClick = {
-                                    recognizeChinese = false
+                                    viewModel.setRecognizeChinese(false)
                                     showLanguageSelector = false
                                 }
                             )
@@ -260,7 +247,7 @@ fun OcrScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (isRecognizing) {
+            if (uiState.isRecognizing) {
                 TechCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -283,7 +270,7 @@ fun OcrScreen(
                 }
             }
 
-            if (recognizedText.isNotEmpty() && !isRecognizing) {
+            if (uiState.recognizedText.isNotEmpty() && !uiState.isRecognizing) {
                 TechCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -299,14 +286,14 @@ fun OcrScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${recognizedText.length} 字",
+                                text = "${uiState.recognizedText.length} 字",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = recognizedText,
+                            text = uiState.recognizedText,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 120.dp),
@@ -326,7 +313,7 @@ fun OcrScreen(
                         text = "📋 复制结果",
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("OCR Result", recognizedText)
+                            val clip = ClipData.newPlainText("OCR Result", uiState.recognizedText)
                             clipboard.setPrimaryClip(clip)
                             Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
                         },
@@ -336,9 +323,7 @@ fun OcrScreen(
                     )
                     TechPrimaryButton(
                         text = "💬 作为对话输入",
-                        onClick = {
-                            onSendToChat(recognizedText)
-                        },
+                        onClick = { onSendToChat(uiState.recognizedText) },
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)

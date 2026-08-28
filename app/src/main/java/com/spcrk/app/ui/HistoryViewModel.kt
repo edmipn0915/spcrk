@@ -1,8 +1,10 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.spcrk.app.AppContainer
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.DownloadHistory
 import com.spcrk.app.data.Repository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,8 @@ data class HistoryUiState(
 )
 
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as com.spcrk.app.VideoDownloaderApp).repository
+    private val container: AppContainer = getAppContainer(application)
+    private val repository = container.repository
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
@@ -48,7 +51,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             if (deleteFile) {
                 try {
                     File(history.filePath).delete()
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    println("[HistoryViewModel] delete file failed: ${e.message}")
                 }
             }
             repository.deleteHistory(history)

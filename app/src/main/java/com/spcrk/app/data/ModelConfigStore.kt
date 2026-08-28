@@ -1,201 +1,163 @@
-﻿package com.spcrk.app.data
+package com.spcrk.app.data
 
 import android.content.Context
-import com.spcrk.app.ai.ModelConfig
-import com.spcrk.app.ai.PresetModels
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
-import java.util.concurrent.TimeUnit
+import com.spcrk.app.data.DefaultValues
+import com.spcrk.app.data.model.ModelConfig
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-class ModelConfigStore(context: Context) {
-    private val prefs = context.getSharedPreferences("model_configs", Context.MODE_PRIVATE)
-    private val gson = Gson()
-    private val key = "configs"
-    private val defaultKey = "default_config_id"
+class ModelConfigStore(private val context: Context) {
+    private val prefs = context.getSharedPreferences("model_config_prefs", Context.MODE_PRIVATE)
 
-    fun saveConfigs(configs: List<ModelConfig>) {
-        prefs.edit().putString(key, gson.toJson(configs)).apply()
+    private val _configs = MutableStateFlow<List<ModelConfig>>(emptyList())
+    val configs: StateFlow<List<ModelConfig>> = _configs.asStateFlow()
+
+    private val _defaultModelId = MutableStateFlow("")
+    val defaultModelIdFlow: StateFlow<String> = _defaultModelId.asStateFlow()
+
+    private val _translateModelId = MutableStateFlow("")
+    val translateModelIdFlow: StateFlow<String> = _translateModelId.asStateFlow()
+
+    fun saveConfigs(modelConfigs: List<ModelConfig>) {
+        _configs.value = modelConfigs
+        val editor = prefs.edit()
+        modelConfigs.forEach { config ->
+            editor.putString("model_${config.id}", config.name)
+            editor.putString("model_${config.id}_provider", config.provider)
+            editor.putString("model_${config.id}_baseUrl", config.baseUrl)
+            editor.putString("model_${config.id}_modelName", config.modelName)
+            editor.putFloat("model_${config.id}_temperature", config.temperature)
+            editor.putInt("model_${config.id}_maxTokens", config.maxTokens)
+            editor.putInt("model_${config.id}_timeout", config.timeout)
+            editor.putBoolean("model_${config.id}_enabled", config.isEnabled)
+            editor.putBoolean("model_${config.id}_default", config.isDefault)
+        }
+        editor.putString("default_model_id", _defaultModelId.value)
+        editor.apply()
     }
 
     fun loadConfigs(): List<ModelConfig> {
-        val json = prefs.getString(key, null) ?: return getDefaultConfigs()
-        val saved = try {
-            val type = object : TypeToken<List<ModelConfig>>() {}.type
-            gson.fromJson<List<ModelConfig>>(json, type) ?: return getDefaultConfigs()
-        } catch (_: Exception) {
-            return getDefaultConfigs()
-        }
-        // 合并：保留用户已有配置，并补充新增的内置厂商（默认关闭）
-        val savedProviders = saved.map { it.provider }.toSet()
-        val missingDefaults = PresetModels.presets.values
-            .filter { it.provider !in savedProviders }
-            .map { preset ->
-                preset.copy(id = java.util.UUID.randomUUID().toString(), isEnabled = false)
+        val configs = mutableListOf<ModelConfig>()
+        for (i in 0 until prefs.all.size) {
+            val key = prefs.all.keys.toList()[i]
+            if (key.startsWith("model_")) {
+                val id = key.removePrefix("model_")
+                val name = prefs.getString("model_${id}", "") ?: ""
+                val provider = prefs.getString("model_${id}_provider", "custom") ?: "custom"
+                val baseUrl = prefs.getString("model_${id}_baseUrl", DefaultValues.DEFAULT_BASE_URL) ?: DefaultValues.DEFAULT_BASE_URL
+                val modelName = prefs.getString("model_${id}_modelName", DefaultValues.DEFAULT_MODEL_NAME) ?: DefaultValues.DEFAULT_MODEL_NAME
+                val temperature = prefs.getFloat("model_${id}_temperature", 0.7f)
+                val maxTokens = prefs.getInt("model_${id}_maxTokens", 4096)
+                val timeout = prefs.getInt("model_${id}_timeout", 60)
+                val isEnabled = prefs.getBoolean("model_${id}_enabled", true)
+                val isDefault = prefs.getBoolean("model_${id}_default", false)
+                configs.add(ModelConfig(id, name, provider, "", baseUrl, modelName, temperature, maxTokens, isEnabled, isDefault, timeout))
             }
-        return if (missingDefaults.isEmpty()) saved else saved + missingDefaults
-    }
-
-    fun addConfig(config: ModelConfig) {
-        val configs = loadConfigs().toMutableList()
-        configs.add(config)
-        saveConfigs(configs)
-    }
-
-    fun removeConfig(id: String) {
-        val configs = loadConfigs().filter { it.id != id }
-        saveConfigs(configs)
-        if (prefs.getString(defaultKey, null) == id) {
-            prefs.edit().remove(defaultKey).apply()
         }
+        _defaultModelId.value = prefs.getString("default_model_id", "") ?: ""
+        _translateModelId.value = prefs.getString("translate_model_id", "") ?: ""
+        return configs
     }
+
+    fun setDefaultModelId(modelId: String) {
+        _defaultModelId.value = modelId
+        prefs.edit().putString("default_model_id", modelId).apply()
+    }
+
+    fun setTranslateModelId(modelId: String) {
+        _translateModelId.value = modelId
+        prefs.edit().putString("translate_model_id", modelId).apply()
+    }
+
+    fun getDefault(): ModelConfig? {
+        val id = prefs.getString("default_model_id", "") ?: ""
+        if (id.isBlank()) return null
+        return loadConfigs().find { it.id == id }?.takeIf { it.isEnabled }
+    }
+
+    /** Resolves the selected config by priority: explicitly selected → default → first enabled. */
+    fun resolveSelectedConfig(selectedId: String, allConfigs: List<ModelConfig> = loadConfigs()): ModelConfig? {
+        val enabled = allConfigs.filter { it.isEnabled }
+        return enabled.find { it.id == selectedId }
+            ?: getDefault()
+            ?: enabled.firstOrNull()
+    }
+
+    fun getProviders(): List<String> = loadConfigs().map { it.provider }.distinct()
+
+    fun getModelsByProvider(provider: String): List<ModelConfig> = loadConfigs().filter { it.provider == provider }
 
     fun updateConfig(config: ModelConfig) {
         val configs = loadConfigs().map { if (it.id == config.id) config else it }
         saveConfigs(configs)
     }
 
-    fun getEnabledConfigs(): List<ModelConfig> = loadConfigs().filter { it.isEnabled }
-
-    fun setDefault(id: String) {
-        val configs = loadConfigs().map { it.copy(isDefault = it.id == id) }
+    fun addConfig(config: ModelConfig) {
+        val configs = loadConfigs() + config
         saveConfigs(configs)
-        prefs.edit().putString(defaultKey, id).apply()
     }
 
-    fun getDefault(): ModelConfig? {
-        val configs = loadConfigs()
-        val defaultId = prefs.getString(defaultKey, null)
-        return configs.find { it.id == defaultId } ?: configs.firstOrNull { it.isDefault }
+    fun removeConfig(id: String) {
+        val configs = loadConfigs().filter { it.id != id }
+        saveConfigs(configs)
     }
 
-    /**
-     * 按厂商类型分组：返回已配置的厂商类型列表（去重、保序）。
-     */
-    fun getProviders(): List<String> {
-        return loadConfigs().map { it.provider }.distinct()
+    fun setDefault(modelId: String) {
+        val configs = loadConfigs().map { it.copy(isDefault = it.id == modelId) }
+        saveConfigs(configs)
+        setDefaultModelId(modelId)
     }
 
-    /**
-     * 返回指定厂商下的全部模型配置。
-     */
-    fun getModelsByProvider(provider: String): List<ModelConfig> {
-        return loadConfigs().filter { it.provider == provider }
-    }
-
-    /**
-     * 为某厂商批量添加模型条目（每个模型名生成一条 ModelConfig）。
-     * 已存在相同 provider + modelName 的条目会被跳过。
-     * 新模型的启用状态跟随厂商组当前状态（默认关闭，用户打开厂商后才启用）。
-     */
     fun addModelsForProvider(provider: String, baseUrl: String, apiKey: String, modelNames: List<String>) {
-        val configs = loadConfigs().toMutableList()
-        val existing = configs.map { "${it.provider}|${it.modelName}" }.toSet()
-        val providerEnabled = configs.firstOrNull { it.provider == provider }?.isEnabled ?: false
-        modelNames.forEach { modelName ->
-            val key = "$provider|$modelName"
-            if (key !in existing) {
-                configs.add(
-                    ModelConfig(
-                        name = modelName,
-                        provider = provider,
-                        apiKey = apiKey,
-                        baseUrl = baseUrl,
-                        modelName = modelName,
-                        isEnabled = providerEnabled
-                    )
-                )
-                existing.plus(key)
+        val existing = loadConfigs().filter { it.provider == provider }.map { it.modelName }.toSet()
+        val newModels = modelNames.filter { it !in existing }.map { name ->
+            ModelConfig(
+                name = name,
+                provider = provider,
+                baseUrl = baseUrl,
+                apiKey = apiKey,
+                modelName = name,
+                isEnabled = false
+            )
+        }
+        if (newModels.isNotEmpty()) {
+            saveConfigs(loadConfigs() + newModels)
+        }
+    }
+
+    suspend fun fetchModelsFromApi(provider: String, baseUrl: String, apiKey: String): List<String> {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val client = okhttp3.OkHttpClient.Builder().connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS).readTimeout(10, java.util.concurrent.TimeUnit.SECONDS).build()
+                val url = when (provider) {
+                    "openai", "anthropic", "gemini", "deepseek", "mistral", "groq", "cerebras", "moonshot",
+                    "baichuan", "dashscope", "stepfun", "doubao", "minimax", "perplexity", "nvidia",
+                    "together", "fireworks", "huggingface", "jina", "voyageai", "ollama", "lmstudio" ->
+                        "$baseUrl/models"
+                    else -> "$baseUrl/v1/models"
+                }
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .header("Authorization", "Bearer $apiKey")
+                    .get()
+                    .build()
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) return@withContext emptyList()
+                val body = response.body?.string() ?: ""
+                val json = org.json.JSONObject(body)
+                val list = json.optJSONArray("data") ?: return@withContext emptyList()
+                (0 until list.length()).map { list.optJSONObject(it)?.optString("id") ?: "" }.filter { it.isNotEmpty() }
+            } catch (e: Exception) {
+                emptyList()
             }
         }
-        saveConfigs(configs)
     }
 
-    /**
-     * 批量更新某厂商下所有配置的 baseUrl / apiKey。
-     */
     fun updateProvider(provider: String, baseUrl: String, apiKey: String) {
         val configs = loadConfigs().map {
             if (it.provider == provider) it.copy(baseUrl = baseUrl, apiKey = apiKey) else it
         }
         saveConfigs(configs)
-    }
-
-    /**
-     * 从 OpenAI 兼容 API（GET {baseUrl}/models）或 Ollama（GET {baseUrl}/api/tags）拉取模型列表。
-     * @throws Exception 网络或解析失败时抛出带错误信息的异常。
-     */
-    suspend fun fetchModelsFromApi(provider: String, baseUrl: String, apiKey: String): List<String> =
-        withContext(Dispatchers.IO) {
-            val client = OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .build()
-
-            val cleanBase = baseUrl.trim().trimEnd('/')
-
-            if (provider == "ollama") {
-                val tagsUrl = cleanBase.removeSuffix("/v1").removeSuffix("/") + "/api/tags"
-                val request = Request.Builder().url(tagsUrl).get().build()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw Exception("获取模型失败: HTTP ${response.code}")
-                    }
-                    val body = response.body?.string() ?: return@use emptyList()
-                    val regex = Regex("\"name\"\\s*:\\s*\"([^\"]+)\"")
-                    return@use regex.findAll(body).map { it.groupValues[1] }.distinct().toList()
-                }
-            } else {
-                val request = Request.Builder()
-                    .url("$cleanBase/models")
-                    .header("Authorization", "Bearer $apiKey")
-                    .get()
-                    .build()
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw Exception("获取模型失败: HTTP ${response.code}")
-                    }
-                    val body = response.body?.string() ?: return@use emptyList()
-                    val json = try {
-                        JSONObject(body)
-                    } catch (e: Exception) {
-                        throw Exception("响应解析失败: ${e.message}")
-                    }
-                    val arr = json.optJSONArray("data") ?: return@use emptyList()
-                    (0 until arr.length()).mapNotNull { i ->
-                        arr.optJSONObject(i)?.optString("id")?.takeIf { it.isNotBlank() }
-                    }
-                }
-            }
-        }
-
-    fun importFromJson(json: String): Boolean {
-        return try {
-            val type = object : TypeToken<List<ModelConfig>>() {}.type
-            val imported: List<ModelConfig> = gson.fromJson(json, type) ?: return false
-            if (imported.isNotEmpty()) {
-                saveConfigs(imported)
-                true
-            } else {
-                false
-            }
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    fun exportToJson(): String {
-        return gson.toJson(loadConfigs())
-    }
-
-    private fun getDefaultConfigs(): List<ModelConfig> {
-        // 默认全部关闭，用户需要时再到设置中手动打开对应厂商
-        return PresetModels.presets.values.map { preset ->
-            preset.copy(id = java.util.UUID.randomUUID().toString(), isEnabled = false)
-        }
     }
 }

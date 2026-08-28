@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.ai
+package com.spcrk.app.ai
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,6 +18,129 @@ data class SearchResult(
     val url: String,
     val snippet: String
 )
+
+fun providerDisplayName(provider: String): String = when (provider) {
+    "openai" -> "OpenAI"
+    "anthropic" -> "Anthropic"
+    "gemini" -> "Google Gemini"
+    "deepseek" -> "DeepSeek"
+    "grok" -> "xAI Grok"
+    "mistral" -> "Mistral"
+    "cerebras" -> "Cerebras"
+    "mimo" -> "Xiaomi MiMo"
+    "zhipu" -> "智谱 GLM"
+    "moonshot" -> "Moonshot"
+    "baichuan" -> "百川 AI"
+    "dashscope" -> "通义千问"
+    "stepfun" -> "阶跃星辰"
+    "doubao" -> "豆包"
+    "minimax" -> "MiniMax"
+    "perplexity" -> "Perplexity"
+    "nvidia" -> "NVIDIA"
+    "groq" -> "Groq"
+    "together" -> "Together"
+    "fireworks" -> "Fireworks"
+    "huggingface" -> "Hugging Face"
+    "jina" -> "Jina"
+    "voyageai" -> "VoyageAI"
+    "azure-openai" -> "Azure OpenAI"
+    "vertexai" -> "VertexAI"
+    "aws-bedrock" -> "AWS Bedrock"
+    "github" -> "GitHub Models"
+    "copilot" -> "GitHub Copilot"
+    "custom" -> "自定义"
+    else -> provider
+}
+
+val providerBaseUrls: Map<String, String> = mapOf(
+    "openai" to "https://api.openai.com/v1",
+    "anthropic" to "https://api.anthropic.com/v1",
+    "gemini" to "https://generativelanguage.googleapis.com/v1beta",
+    "deepseek" to "https://api.deepseek.com/v1",
+    "grok" to "https://api.x.ai/v1",
+    "mistral" to "https://api.mistral.ai/v1",
+    "cerebras" to "https://api.cerebras.ai/v1",
+    "mimo" to "https://api.xiaomi.com/v1",
+    "zhipu" to "https://open.bigmodel.cn/api/paas/v4",
+    "moonshot" to "https://api.moonshot.cn/v1",
+    "baichuan" to "https://api.baichuan-ai.com/v1",
+    "dashscope" to "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "stepfun" to "https://api.stepfun.com/v1",
+    "doubao" to "https://ark.cn-beijing.volces.com/api/v3",
+    "minimax" to "https://api.minimax.chat/v1",
+    "perplexity" to "https://api.perplexity.ai",
+    "nvidia" to "https://integrate.api.nvidia.com/v1",
+    "groq" to "https://api.groq.com/openai/v1",
+    "together" to "https://api.together.xyz/v1",
+    "fireworks" to "https://api.fireworks.ai/inference/v1",
+    "huggingface" to "https://api-inference.huggingface.co/v1",
+    "jina" to "https://api.jina.ai/v1",
+    "voyageai" to "https://api.voyageai.com/v1",
+    "azure-openai" to "https://openai.azure.com/openai/deployments",
+    "vertexai" to "https://us-central1-aiplatform.googleapis.com/v1",
+    "aws-bedrock" to "https://bedrock-runtime.us-east-1.amazonaws.com",
+    "github" to "https://models.github.ai/inference",
+    "copilot" to "https://api.githubcopilot.com",
+    "ollama" to "http://localhost:11434/v1",
+    "lmstudio" to "http://localhost:1234/v1",
+    "custom" to ""
+)
+
+val presetModelsByProvider: Map<String, List<String>> = mapOf(
+    "openai" to listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"),
+    "anthropic" to listOf("claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"),
+    "gemini" to listOf("gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"),
+    "deepseek" to listOf("deepseek-chat", "deepseek-coder", "deepseek-reasoner"),
+    "grok" to listOf("grok-2", "grok-2-vision", "grok-2-beta"),
+    "mistral" to listOf("mistral-large-latest", "mistral-medium-latest", "mistral-small-latest", "mistral-nemo"),
+    "cerebras" to listOf("llama-3.1-70b", "llama-3.1-8b", "llama-3.1-405b"),
+    "zhipu" to listOf("glm-4", "glm-4-plus", "glm-4-air", "glm-4-flash"),
+    "moonshot" to listOf("moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"),
+    "baichuan" to listOf("Baichuan4", "Baichuan3-Turbo"),
+    "dashscope" to listOf("qwen-max", "qwen-plus", "qwen-turbo", "qwen-long"),
+    "stepfun" to listOf("step-1-8k", "step-1-32k"),
+    "doubao" to listOf("doubao-1.5-pro-256k", "doubao-1.5-flash-256k"),
+    "minimax" to listOf("minimax-01", "minimax-text-01"),
+    "perplexity" to listOf("sonar", "sonar-pro"),
+    "nvidia" to listOf("mistralai/mistral-7b-instruct-v0.2", "meta/llama-3-70b-instruct"),
+    "groq" to listOf("llama-3.1-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192"),
+    "together" to listOf("meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"),
+    "fireworks" to listOf("firefly-ultra-v2"),
+    "ollama" to listOf("llama3.2", "llama3.1", "qwen2.5", "mistral", "codellama"),
+    "lmstudio" to listOf("auto"),
+    "custom" to listOf("custom")
+)
+
+val providerTags: Map<String, List<String>> = mapOf(
+    "openai" to listOf("recommended", "paid"),
+    "anthropic" to listOf("recommended", "paid"),
+    "gemini" to listOf("free", "recommended"),
+    "deepseek" to listOf("free", "cheap"),
+    "ollama" to listOf("local", "free"),
+    "lmstudio" to listOf("local", "free")
+)
+
+val providerNotes: Map<String, String?> = mapOf(
+    "openai" to "最稳定的 API，模型丰富",
+    "anthropic" to "Claude 系列，推理能力强",
+    "gemini" to "Google Gemini，有免费额度",
+    "deepseek" to "国内可用，性价比高",
+    "ollama" to "本地运行，无需网络",
+    "lmstudio" to "本地运行，支持多种模型"
+)
+
+object PresetModels {
+    val presets: Map<String, com.spcrk.app.data.model.ModelConfig> = mapOf(
+        "openai" to com.spcrk.app.data.model.ModelConfig(name = "OpenAI", provider = "openai", baseUrl = "https://api.openai.com/v1", modelName = "gpt-4o-mini", isEnabled = false),
+        "anthropic" to com.spcrk.app.data.model.ModelConfig(name = "Anthropic", provider = "anthropic", baseUrl = "https://api.anthropic.com/v1", modelName = "claude-3-5-sonnet-20241022", isEnabled = false),
+        "gemini" to com.spcrk.app.data.model.ModelConfig(name = "Gemini", provider = "gemini", baseUrl = "https://generativelanguage.googleapis.com/v1beta", modelName = "gemini-2.0-flash", isEnabled = false),
+        "deepseek" to com.spcrk.app.data.model.ModelConfig(name = "DeepSeek", provider = "deepseek", baseUrl = "https://api.deepseek.com/v1", modelName = "deepseek-chat", isEnabled = false),
+        "grok" to com.spcrk.app.data.model.ModelConfig(name = "Grok", provider = "grok", baseUrl = "https://api.x.ai/v1", modelName = "grok-2", isEnabled = false),
+        "mistral" to com.spcrk.app.data.model.ModelConfig(name = "Mistral", provider = "mistral", baseUrl = "https://api.mistral.ai/v1", modelName = "mistral-large-latest", isEnabled = false),
+        "ollama" to com.spcrk.app.data.model.ModelConfig(name = "Ollama", provider = "ollama", baseUrl = "http://localhost:11434/v1", modelName = "llama3.2", isEnabled = false),
+        "lmstudio" to com.spcrk.app.data.model.ModelConfig(name = "LM Studio", provider = "lmstudio", baseUrl = "http://localhost:1234/v1", modelName = "auto", isEnabled = false)
+    )
+}
 
 data class SearchConfig(
     val engine: String = "duckduckgo",
@@ -71,7 +194,7 @@ class SearchEngine {
         }
     }
 
-    private fun searchDuckDuckGo(query: String, maxResults: Int): List<SearchResult> {
+    fun searchDuckDuckGo(query: String, maxResults: Int): List<SearchResult> {
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
         val url = "https://html.duckduckgo.com/html/?q=$encodedQuery"
 
@@ -89,7 +212,7 @@ class SearchEngine {
         return parseDuckDuckGoResults(body, maxResults)
     }
 
-    private fun parseDuckDuckGoResults(html: String, maxResults: Int): List<SearchResult> {
+    internal fun parseDuckDuckGoResults(html: String, maxResults: Int): List<SearchResult> {
         val results = mutableListOf<SearchResult>()
         val doc: Document = Jsoup.parse(html)
 
@@ -415,6 +538,15 @@ class SearchEngine {
     private fun searchZhipu(query: String, config: SearchConfig): List<SearchResult> {
         if (config.apiKey.isEmpty()) return emptyList()
 
+        val request = buildZhipuRequest(query, config.apiKey)
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) return emptyList()
+
+        val responseBody = response.body?.string() ?: return emptyList()
+        return parseZhipuResponse(responseBody, config.maxResults)
+    }
+
+    private fun buildZhipuRequest(query: String, apiKey: String): Request {
         val json = JSONObject().apply {
             put("request_id", System.currentTimeMillis().toString())
             put("tool", "web-search-pro")
@@ -426,20 +558,16 @@ class SearchEngine {
                 })
             })
         }
-
         val body = json.toString().toRequestBody("application/json".toMediaType())
-        val request = Request.Builder()
+        return Request.Builder()
             .url("https://open.bigmodel.cn/api/paas/v4/tools")
             .post(body)
             .addHeader("Content-Type", "application/json")
-            .addHeader("Authorization", config.apiKey)
+            .addHeader("Authorization", apiKey)
             .build()
+    }
 
-        val response = client.newCall(request).execute()
-        if (!response.isSuccessful) return emptyList()
-
-        val responseBody = response.body?.string() ?: return emptyList()
-
+    private fun parseZhipuResponse(responseBody: String, maxResults: Int): List<SearchResult> {
         return try {
             val jsonResponse = JSONObject(responseBody)
             val choices = jsonResponse.optJSONArray("choices") ?: return emptyList()
@@ -459,7 +587,7 @@ class SearchEngine {
                         val searchResults = args.optJSONArray("search_result") ?: args.optJSONArray("results")
                         if (searchResults != null) {
                             for (j in 0 until searchResults.length()) {
-                                if (results.size >= config.maxResults) break
+                                if (results.size >= maxResults) break
                                 val item = searchResults.getJSONObject(j)
                                 val title = item.optString("title", "")
                                 val url = item.optString("link", item.optString("url", ""))
@@ -469,7 +597,9 @@ class SearchEngine {
                                 }
                             }
                         }
-                    } catch (_: Exception) { }
+                    } catch (e: Exception) {
+                        println("[SearchEngine] search error: ${e.message}")
+                    }
                 }
             }
             results

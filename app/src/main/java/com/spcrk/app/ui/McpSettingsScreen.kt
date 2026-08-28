@@ -11,33 +11,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.ai.McpManager
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.McpServer
-import com.spcrk.app.data.Repository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun McpSettingsScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: McpManageViewModel = viewModel(factory = McpManageViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
-    val context = LocalContext.current
-    val repository = remember { Repository(context) }
-    val mcpManager = remember { McpManager() }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showAddDialog by remember { mutableStateOf(false) }
 
-    val servers by repository.getAllMcpServers().collectAsState(initial = emptyList())
-
-    LaunchedEffect(servers) {
-        servers.forEach { server ->
-            if (mcpManager.getServer(server.id.toString()) == null) {
-                mcpManager.addServer(server)
-            }
-        }
-    }
+    val servers by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -60,7 +49,7 @@ fun McpSettingsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        if (servers.isEmpty()) {
+        if (servers.servers.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -96,21 +85,18 @@ fun McpSettingsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(servers.size) { index ->
-                    val server = servers[index]
+                items(servers.servers.size) { index ->
+                    val server = servers.servers[index]
                     McpServerCard(
                         server = server,
                         onToggle = {
                             scope.launch {
-                                repository.updateMcpServer(server.copy(isEnabled = !server.isEnabled))
+                                viewModel.toggleServer(server, !server.isEnabled)
                             }
                         },
                         onEdit = { },
                         onDelete = {
-                            scope.launch {
-                                repository.deleteMcpServer(server)
-                                mcpManager.removeServer(server.id.toString())
-                            }
+                            viewModel.deleteServer(server)
                         },
                         onViewTools = {
                             scope.launch {
@@ -132,10 +118,7 @@ fun McpSettingsScreen(
         AddMcpServerDialog(
             onDismiss = { showAddDialog = false },
             onAdd = { server ->
-                scope.launch {
-                    repository.addMcpServer(server)
-                    mcpManager.addServer(server)
-                }
+                viewModel.addServer(server)
                 showAddDialog = false
             }
         )

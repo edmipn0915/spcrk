@@ -1,4 +1,4 @@
-package com.spcrk.app.ai
+package com.spcrk.app.ui.ai
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.spcrk.app.ai.TranslateViewModel
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechTextField

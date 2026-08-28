@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,7 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun NoteEditScreen(
     noteId: Long?,
     onBackClick: () -> Unit,
-    viewModel: NoteEditViewModel = viewModel()
+    viewModel: NoteEditViewModel = viewModel(factory = NoteEditViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current

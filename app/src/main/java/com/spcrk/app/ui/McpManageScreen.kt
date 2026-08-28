@@ -16,9 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.ai.McpManager
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.McpServer
-import com.spcrk.app.data.Repository
+import com.spcrk.app.ai.api.McpConnectionState
+import com.spcrk.app.ui.navigation.Screen
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.File
@@ -26,10 +27,10 @@ import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun McpManageScreen(onBackClick: () -> Unit) {
-    val context = LocalContext.current
-    val repository = remember { Repository(context) }
-    val mcpManager = remember { McpManager() }
+fun McpManageScreen(
+    onBackClick: () -> Unit,
+    viewModel: McpManageViewModel = viewModel(factory = McpManageViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
+) {
     val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -38,15 +39,7 @@ fun McpManageScreen(onBackClick: () -> Unit) {
     var testResult by remember { mutableStateOf("") }
     var isTesting by remember { mutableStateOf(false) }
 
-    val servers by repository.getAllMcpServers().collectAsState(initial = emptyList())
-
-    LaunchedEffect(servers) {
-        servers.forEach { server ->
-            if (mcpManager.getServer(server.id.toString()) == null) {
-                mcpManager.addServer(server)
-            }
-        }
-    }
+    val servers by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -65,7 +58,7 @@ fun McpManageScreen(onBackClick: () -> Unit) {
             }
         }
     ) { padding ->
-        if (servers.isEmpty()) {
+        if (servers.servers.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -101,28 +94,17 @@ fun McpManageScreen(onBackClick: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(servers) { server ->
+                items(servers.servers) { server ->
                     McpServerItem(
                         server = server,
-                        connectionState = mcpManager.getConnectionState(server.id.toString()),
-                        onToggle = { enabled ->
-                            scope.launch {
-                                repository.updateMcpServer(server.copy(isEnabled = enabled))
-                            }
-                        },
-                        onDelete = {
-                            scope.launch {
-                                repository.deleteMcpServer(server)
-                                mcpManager.removeServer(server.id.toString())
-                            }
-                        },
+                        connectionState = viewModel.getConnectionState(server.id.toString()),
+                        onToggle = { enabled -> viewModel.toggleServer(server, enabled) },
+                        onDelete = { viewModel.deleteServer(server) },
                         onTest = {
                             selectedServer = server
                             showToolTestDialog = true
                         },
-                        onReconnect = {
-                            mcpManager.reconnectServer(server.id.toString())
-                        }
+                        onReconnect = { viewModel.reconnectServer(server) }
                     )
                 }
             }
@@ -131,13 +113,11 @@ fun McpManageScreen(onBackClick: () -> Unit) {
 
     if (showAddDialog) {
         AddMcpServerDialog(
-            mcpManager = mcpManager,
+            viewModel = viewModel,
             onDismiss = { showAddDialog = false },
             onAdd = { server ->
-                scope.launch {
-                    repository.addMcpServer(server)
-                    showAddDialog = false
-                }
+                viewModel.addServer(server)
+                showAddDialog = false
             }
         )
     }
@@ -145,7 +125,7 @@ fun McpManageScreen(onBackClick: () -> Unit) {
     if (showToolTestDialog && selectedServer != null) {
         ToolTestDialog(
             server = selectedServer!!,
-            mcpManager = mcpManager,
+            viewModel = viewModel,
             onDismiss = { showToolTestDialog = false }
         )
     }
@@ -154,7 +134,7 @@ fun McpManageScreen(onBackClick: () -> Unit) {
 @Composable
 fun McpServerItem(
     server: McpServer,
-    connectionState: McpManager.ConnectionState,
+    connectionState: McpConnectionState,
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
     onTest: () -> Unit,
@@ -267,21 +247,23 @@ fun McpServerItem(
 }
 
 @Composable
-fun ConnectionStateIndicator(state: McpManager.ConnectionState) {
+fun ConnectionStateIndicator(state: McpConnectionState) {
     val (color, text) = when (state) {
-        McpManager.ConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary to "已连接"
-        McpManager.ConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary to "连接中"
-        McpManager.ConnectionState.ERROR -> MaterialTheme.colorScheme.error to "错误"
-        McpManager.ConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) to "未连接"
+        McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary to "已连接"
+        McpConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary to "连接中"
+        McpConnectionState.ERROR -> MaterialTheme.colorScheme.error to "错误"
+        McpConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) to "未连接"
+        else -> MaterialTheme.colorScheme.onSurfaceVariant to "未知"
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = when (state) {
-                McpManager.ConnectionState.CONNECTED -> Icons.Default.CheckCircle
-                McpManager.ConnectionState.CONNECTING -> Icons.Default.Sync
-                McpManager.ConnectionState.ERROR -> Icons.Default.Error
-                McpManager.ConnectionState.DISCONNECTED -> Icons.Default.RadioButtonUnchecked
+                McpConnectionState.CONNECTED -> Icons.Default.CheckCircle
+                McpConnectionState.CONNECTING -> Icons.Default.Sync
+                McpConnectionState.ERROR -> Icons.Default.Error
+                McpConnectionState.DISCONNECTED -> Icons.Default.RadioButtonUnchecked
+                else -> Icons.Default.Help
             },
             contentDescription = null,
             tint = color,
@@ -298,7 +280,7 @@ fun ConnectionStateIndicator(state: McpManager.ConnectionState) {
 
 @Composable
 fun AddMcpServerDialog(
-    mcpManager: McpManager,
+    viewModel: McpManageViewModel,
     onDismiss: () -> Unit,
     onAdd: (McpServer) -> Unit
 ) {
@@ -332,7 +314,7 @@ fun AddMcpServerDialog(
                         input.copyTo(output)
                     }
                 }
-                val server = mcpManager.parseDxtFile(tempFile)
+                val server = viewModel.parseDxtFile(tempFile)
                 if (server != null) {
                     dxtServer = server
                     dxtFileName = tempFile.name
@@ -359,7 +341,7 @@ fun AddMcpServerDialog(
                         input.copyTo(output)
                     }
                 }
-                val server = mcpManager.parseMcpbFile(tempFile)
+                val server = viewModel.parseMcpbFile(tempFile)
                 if (server != null) {
                     mcpbServer = server
                     mcpbFileName = tempFile.name
@@ -413,7 +395,7 @@ fun AddMcpServerDialog(
                         jsonInput = jsonInput,
                         onJsonInputChange = { jsonInput = it },
                         onParse = {
-                            val server = mcpManager.parseJsonConfig(jsonInput)
+                            val server = viewModel.parseJsonConfig(jsonInput, "json")
                             if (server != null) {
                                 onAdd(server)
                                 errorMessage = ""
@@ -730,7 +712,7 @@ fun McpbImportTab(
 @Composable
 fun ToolTestDialog(
     server: McpServer,
-    mcpManager: McpManager,
+    viewModel: McpManageViewModel,
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -739,7 +721,7 @@ fun ToolTestDialog(
     var testResult by remember { mutableStateOf("") }
     var isTesting by remember { mutableStateOf(false) }
 
-    val tools = mcpManager.getToolsForServer(server.id.toString())
+    val tools = viewModel.getToolsForServer(server.id.toString())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -809,7 +791,7 @@ fun ToolTestDialog(
                                     } catch (e: Exception) {
                                         JSONObject()
                                     }
-                                    testResult = mcpManager.callTool(server.id.toString(), toolName, args)
+                                    testResult = viewModel.callTool(server.id.toString(), toolName, args)
                                     isTesting = false
                                 }
                             }

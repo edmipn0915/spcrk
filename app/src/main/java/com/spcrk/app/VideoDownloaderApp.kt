@@ -1,29 +1,23 @@
-﻿package com.spcrk.app
+package com.spcrk.app
 
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import com.spcrk.app.data.Repository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class VideoDownloaderApp : Application() {
 
-    companion object {
-        const val DOWNLOAD_CHANNEL_ID = "download_channel"
-        const val DOWNLOAD_CHANNEL_NAME = "视频下载"
-        const val SCHEDULE_CHANNEL_ID = "schedule_channel"
-        const val SCHEDULE_CHANNEL_NAME = "定时任务"
-        private const val PREFS_NAME = "spcrk_prefs"
-        private const val KEY_DARK_THEME = "dark_theme"
-    }
-
-    val repository by lazy { Repository(this) }
+    val container: AppContainer by lazy { AppContainerImpl(this) }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         createScheduleChannel()
+        CoroutineScope(Dispatchers.IO).launch { (container as AppContainerImpl).initializeBuiltInSkills() }
     }
 
     private fun createNotificationChannel() {

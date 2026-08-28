@@ -15,10 +15,11 @@ import com.spcrk.app.ui.theme.techRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.spcrk.app.data.SettingsStore
+import com.spcrk.app.getAppContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +28,7 @@ fun AppearanceSettingsScreen(
     isDarkTheme: Boolean,
     onToggleTheme: (Boolean) -> Unit
 ) {
-    val settingsStore = remember { SettingsStore.getInstance() }
+    val settingsStore = getAppContainer(LocalContext.current).settingsStore
     val themeMode by settingsStore.themeModeFlow.collectAsState(initial = "system")
     val fontSize by settingsStore.fontSizeFlow.collectAsState(initial = 14)
     val language by settingsStore.languageFlow.collectAsState(initial = "zh")

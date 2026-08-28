@@ -1,10 +1,10 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.Note
-import com.spcrk.app.VideoDownloaderApp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +23,7 @@ data class NoteEditUiState(
 )
 
 class NoteListViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as VideoDownloaderApp).repository
+    private val repository = getAppContainer(application).repository
     private val _uiState = MutableStateFlow(NoteListUiState())
     val uiState: StateFlow<NoteListUiState> = _uiState.asStateFlow()
 
@@ -40,8 +40,26 @@ class NoteListViewModel(application: Application) : AndroidViewModel(application
     }
 }
 
+class NoteListViewModelFactory(private val application: Application) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(NoteListViewModel::class.java))
+            return NoteListViewModel(application) as T
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class NoteEditViewModelFactory(private val application: Application) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(NoteEditViewModel::class.java))
+            return NoteEditViewModel(application) as T
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 class NoteEditViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as VideoDownloaderApp).repository
+    private val repository = getAppContainer(application).repository
     private val _uiState = MutableStateFlow(NoteEditUiState())
     val uiState: StateFlow<NoteEditUiState> = _uiState.asStateFlow()
 

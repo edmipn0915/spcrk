@@ -1,15 +1,15 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.spcrk.app.AppContainer
+import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.DownloadHistory
-import com.spcrk.app.data.Repository
 import com.spcrk.app.downloader.VideoDownloader
 import com.spcrk.app.model.DownloadState
 import com.spcrk.app.model.VideoInfo
-import com.spcrk.app.VideoDownloaderApp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +37,8 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     private val videoDownloader = VideoDownloader()
-    private val repository = (app as VideoDownloaderApp).repository
+    private val container: AppContainer = getAppContainer(app)
+    private val repository = container.repository
     private var downloadJob: Job? = null
 
     private var lastProgressTime = 0L

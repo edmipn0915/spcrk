@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.service
+package com.spcrk.app.service
 
 import android.app.Notification
 import android.app.PendingIntent
@@ -6,9 +6,9 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.spcrk.app.DOWNLOAD_CHANNEL_ID
 import com.spcrk.app.MainActivity
 import com.spcrk.app.R
-import com.spcrk.app.VideoDownloaderApp
 
 class DownloadService : Service() {
 
@@ -27,7 +27,7 @@ class DownloadService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, VideoDownloaderApp.DOWNLOAD_CHANNEL_ID)
+        return NotificationCompat.Builder(this, DOWNLOAD_CHANNEL_ID)
             .setContentTitle("视频下载")
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_download)
