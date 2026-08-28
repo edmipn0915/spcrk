@@ -18,6 +18,20 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipInputStream
 
+/**
+ * 把伺服器的 headers JSON 解析成 key-value 對應。
+ * 修復 callToolHttp 直接把整個 headers JSON 字串當成 header 值送出的 bug。
+ */
+internal fun headersFromJson(headersJson: String): Map<String, String> {
+    if (headersJson.isBlank()) return emptyMap()
+    return try {
+        val obj = JSONObject(headersJson)
+        obj.keys().asSequence().associateWith { obj.getString(it) }
+    } catch (e: Exception) {
+        emptyMap()
+    }
+}
+
 class McpManager : McpService {
 
     companion object {
@@ -145,7 +159,7 @@ class McpManager : McpService {
                 .addHeader("Accept", "application/json, text/event-stream")
             if (server.headers.isNotEmpty()) {
                 try {
-                    JSONObject(server.headers).keys().forEach { k -> httpBuilder.addHeader(k, server.headers) }
+                    headersFromJson(server.headers).forEach { (k, v) -> httpBuilder.addHeader(k, v) }
                 } catch (e: Exception) {
                     println("[McpManager] invalid headers JSON: ${e.message}")
                 }
@@ -221,13 +235,7 @@ class McpManager : McpService {
             .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
             .addHeader("Accept", "application/json, text/event-stream")
         if (server.headers.isNotEmpty()) {
-            try {
-                JSONObject(server.headers).keys().forEach { k ->
-                    builder.addHeader(k, JSONObject(server.headers).getString(k))
-                }
-            } catch (e: Exception) {
-                println("[McpManager] invalid server headers: ${e.message}")
-            }
+            headersFromJson(server.headers).forEach { (k, v) -> builder.addHeader(k, v) }
         }
         return builder.build()
     }

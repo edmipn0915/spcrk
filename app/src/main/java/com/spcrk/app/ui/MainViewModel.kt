@@ -121,6 +121,7 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
 
                 // Start download
                 videoDownloader.downloadVideo(
+                    context = getApplication(),
                     videoInfo = videoInfo,
                     onProgress = { downloadedBytes, totalBytes ->
                         val currentTime = System.currentTimeMillis()
@@ -151,8 +152,24 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
                     },
                     onComplete = { filePath ->
                         Log.d("VideoDownloader", "下载完成: $filePath")
-                        val file = java.io.File(filePath)
-                        val fileSize = if (file.exists()) file.length() else 0L
+                        // content:// URI（Android 10+ MediaStore）不能 File() 檢查，改查 ContentResolver
+                        val fileSize = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(filePath)) {
+                            try {
+                                val resolver = getApplication<Application>().contentResolver
+                                resolver.query(
+                                    android.net.Uri.parse(filePath),
+                                    arrayOf(android.provider.MediaStore.MediaColumns.SIZE),
+                                    null, null, null
+                                )?.use { c ->
+                                    if (c.moveToFirst()) c.getLong(0) else 0L
+                                } ?: 0L
+                            } catch (e: Exception) {
+                                0L
+                            }
+                        } else {
+                            val f = java.io.File(filePath)
+                            if (f.exists()) f.length() else 0L
+                        }
                         val history = DownloadHistory(
                             title = videoInfo.title,
                             platform = videoInfo.platform,

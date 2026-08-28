@@ -24,11 +24,10 @@ import com.spcrk.app.getAppContainer
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceSettingsScreen(
-    onBackClick: () -> Unit,
-    isDarkTheme: Boolean,
-    onToggleTheme: (Boolean) -> Unit
+    onBackClick: () -> Unit
 ) {
     val settingsStore = getAppContainer(LocalContext.current).settingsStore
+    val s = com.spcrk.app.ui.l10n.appStrings()
     val themeMode by settingsStore.themeModeFlow.collectAsState(initial = "system")
     val fontSize by settingsStore.fontSizeFlow.collectAsState(initial = 14)
     val language by settingsStore.languageFlow.collectAsState(initial = "zh")
@@ -39,11 +38,11 @@ fun AppearanceSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("外观设置") },
+                title = { Text(s.appearanceTitle) },
                 navigationIcon = {
                     IconButton(onClick = {},
 modifier = Modifier.techRipple(onClick = onBackClick)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -61,7 +60,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
         ) {
             item {
                 Text(
-                    text = "主题模式",
+                    text = s.themeMode,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -74,27 +73,21 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         ThemeModeOption(
-                            label = "跟随系统",
+                            label = s.followSystem,
                             selected = themeMode == "system",
                             onClick = { settingsStore.setThemeMode("system") }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         ThemeModeOption(
-                            label = "亮色主题",
+                            label = s.lightTheme,
                             selected = themeMode == "light",
-                            onClick = {
-                                settingsStore.setThemeMode("light")
-                                onToggleTheme(false)
-                            }
+                            onClick = { settingsStore.setThemeMode("light") }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         ThemeModeOption(
-                            label = "暗色主题",
+                            label = s.darkTheme,
                             selected = themeMode == "dark",
-                            onClick = {
-                                settingsStore.setThemeMode("dark")
-                                onToggleTheme(true)
-                            }
+                            onClick = { settingsStore.setThemeMode("dark") }
                         )
                     }
                 }
@@ -102,7 +95,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 Text(
-                    text = "主题颜色",
+                    text = s.themeColor,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -119,7 +112,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("当前颜色", style = MaterialTheme.typography.bodyMedium)
+                        Text(s.currentColor, style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.weight(1f))
                         Box(
                             modifier = Modifier
@@ -140,7 +133,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 Text(
-                    text = "字体大小",
+                    text = s.fontSize,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -166,7 +159,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                             Text("A", style = MaterialTheme.typography.titleLarge)
                         }
                         Text(
-                            text = "当前: ${fontSize}sp",
+                            text = String.format(s.fontSizeCurrentFormat, fontSize),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -176,7 +169,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 Text(
-                    text = "界面缩放",
+                    text = s.uiZoom,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -195,7 +188,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                             steps = 9
                         )
                         Text(
-                            text = "当前: ${(zoomFactor * 100).toInt()}%",
+                            text = String.format(s.zoomCurrentFormat, (zoomFactor * 100).toInt()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -205,7 +198,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 Text(
-                    text = "语言设置",
+                    text = s.languageSettings,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -217,9 +210,10 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        LanguageOption("简体中文", "zh", language) { settingsStore.setLanguage(it) }
-                        LanguageOption("English", "en", language) { settingsStore.setLanguage(it) }
-                        LanguageOption("日本語", "ja", language) { settingsStore.setLanguage(it) }
+                        LanguageOption(s.zhSimplified, "zh", language) { settingsStore.setLanguage(it) }
+                        LanguageOption(s.zhTraditional, "zh-TW", language) { settingsStore.setLanguage(it) }
+                        LanguageOption(s.english, "en", language) { settingsStore.setLanguage(it) }
+                        LanguageOption(s.japanese, "ja", language) { settingsStore.setLanguage(it) }
                     }
                 }
             }

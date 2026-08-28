@@ -35,15 +35,14 @@ fun DocumentScreen(
     viewModel: DocumentViewModel = viewModel(factory = DocumentViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val documentPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let {
-            val filePath = it.path ?: return@let
-            viewModel.loadDocument(filePath)
+            // 直接傳完整 content:// URI（修復之前取 .path 導致上傳必失敗的 bug）
+            viewModel.loadDocument(it)
         }
     }
 

@@ -1,6 +1,10 @@
-﻿package com.spcrk.app.downloader
+package com.spcrk.app.downloader
 
+import android.content.ContentValues
+import android.content.Context
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import com.spcrk.app.model.Platform
 import com.spcrk.app.model.VideoInfo
 import kotlinx.coroutines.*
@@ -47,6 +51,7 @@ class VideoDownloader {
     }
 
     suspend fun downloadVideo(
+        context: Context,
         videoInfo: VideoInfo,
         onProgress: (downloadedBytes: Long, totalBytes: Long) -> Unit,
         onComplete: (String) -> Unit,
@@ -63,37 +68,71 @@ class VideoDownloader {
                 }
 
                 val fileName = "${videoInfo.title.replace(Regex("[\\\\/:*?\"<>|]"), "_")}_${System.currentTimeMillis()}.mp4"
-                val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
-                // Ensure directory exists
-                if (!downloadDir.exists()) {
-                    val created = downloadDir.mkdirs()
-                    if (!created) {
-                        throw DownloadException("无法创建下载目录")
-                    }
-                }
-
-                val outputFile = File(downloadDir, fileName)
+                // 先下載到 app 快取目錄（可隨機讀寫、支援多執行緒），
+                // 避免 Android 11+（targetSdk 30+）無法直接寫入公共 Download 目錄。
+                val tempDir = File(context.cacheDir, "downloads").apply { mkdirs() }
+                val tempFile = File(tempDir, fileName)
 
                 // Get file size
                 val contentLength = getContentLength(downloadUrl, videoInfo.url)
 
                 if (contentLength > 1024 * 1024) {
                     // Multi-thread download for large files
-                    multiThreadDownload(downloadUrl, videoInfo.url, outputFile, contentLength, onProgress)
+                    multiThreadDownload(downloadUrl, videoInfo.url, tempFile, contentLength, onProgress)
                 } else {
                     // Single thread download for small files
-                    singleThreadDownload(downloadUrl, videoInfo.url, outputFile, contentLength, onProgress)
+                    singleThreadDownload(downloadUrl, videoInfo.url, tempFile, contentLength, onProgress)
                 }
 
                 onProgress(contentLength.coerceAtLeast(0L), contentLength.coerceAtLeast(0L))
-                onComplete(outputFile.absolutePath)
+
+                // 發布到用戶可見目錄（Android 10+ 用 MediaStore，舊版用公共 Download）
+                val publishedPath = publishVideo(context, tempFile, fileName)
+                onComplete(publishedPath)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 onError(e.message ?: "下载失败")
             }
         }
+    }
+
+    /**
+     * 把快取的臨時檔發布到用戶可見目錄，回傳可播放的 uri / 路徑字串。
+     */
+    private fun publishVideo(context: Context, tempFile: File, fileName: String): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            publishToMediaStore(context, tempFile, fileName)
+        } else {
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!dir.exists()) dir.mkdirs()
+            val dest = File(dir, fileName)
+            if (!tempFile.renameTo(dest)) tempFile.copyTo(dest, overwrite = true)
+            tempFile.delete()
+            dest.absolutePath
+        }
+    }
+
+    private fun publishToMediaStore(context: Context, tempFile: File, fileName: String): String {
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Sparck")
+        }
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            ?: throw DownloadException("无法创建下载文件")
+        try {
+            resolver.openOutputStream(uri)?.use { out ->
+                tempFile.inputStream().use { it.copyTo(out) }
+            } ?: throw DownloadException("无法写入下载文件")
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            throw e
+        }
+        tempFile.delete()
+        return uri.toString()
     }
 
     private fun getContentLength(url: String, referer: String): Long {

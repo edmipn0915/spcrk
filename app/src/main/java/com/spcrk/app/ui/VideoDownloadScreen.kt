@@ -381,13 +381,18 @@ fun VideoDownloadScreen(
 
 private fun openVideoFile(context: android.content.Context, filePath: String) {
     try {
-        val file = File(filePath)
-        if (!file.exists()) {
-            android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
-            return
+        // content:// URI（Android 10+ MediaStore）不需要 FileProvider，也不能用 File.exists 檢查
+        val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(filePath)) {
+            Uri.parse(filePath)
+        } else {
+            val file = File(filePath)
+            if (!file.exists()) {
+                android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
+                return
+            }
+            val authority = context.packageName + ".provider"
+            FileProvider.getUriForFile(context, authority, file)
         }
-        val authority = context.packageName + ".provider"
-        val uri: Uri = FileProvider.getUriForFile(context, authority, file)
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "video/*")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -401,13 +406,18 @@ private fun openVideoFile(context: android.content.Context, filePath: String) {
 
 private fun shareVideoFile(context: android.content.Context, filePath: String, title: String) {
     try {
-        val file = File(filePath)
-        if (!file.exists()) {
-            android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
-            return
+        // content:// URI 可直接分享，不必 FileProvider 轉換
+        val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(filePath)) {
+            Uri.parse(filePath)
+        } else {
+            val file = File(filePath)
+            if (!file.exists()) {
+                android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
+                return
+            }
+            val authority = context.packageName + ".provider"
+            FileProvider.getUriForFile(context, authority, file)
         }
-        val authority = context.packageName + ".provider"
-        val uri: Uri = FileProvider.getUriForFile(context, authority, file)
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "video/*"
             putExtra(Intent.EXTRA_STREAM, uri)

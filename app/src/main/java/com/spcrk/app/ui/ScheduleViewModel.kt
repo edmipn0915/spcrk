@@ -28,6 +28,23 @@ enum class SchedulePreset {
     EVERY_MINUTE, EVERY_5_MINUTES, EVERY_15_MINUTES, EVERY_HOUR, EVERY_DAILY, CUSTOM
 }
 
+/**
+ * cron 表達式 → WorkManager 週期間隔（分鐘）。
+ * WorkManager 週期性工作最小間隔為 15 分鐘，低於此值會被夾緊，
+ * 否則 enqueue 時拋 IllegalArgumentException 造成 App 崩潰。
+ */
+internal fun intervalMinutesForCron(cronExpression: String): Long {
+    val raw = when (cronExpression) {
+        "* * * * *" -> 1L
+        "*/5 * * * *" -> 5L
+        "*/15 * * * *" -> 15L
+        "0 * * * *" -> 60L
+        "0 9 * * *" -> 1440L
+        else -> 60L
+    }
+    return raw.coerceAtLeast(15L)
+}
+
 class ScheduleViewModel(application: Application) : AndroidViewModel(application) {
     private val container: AppContainer = getAppContainer(application)
     private val repository = container.repository
@@ -66,8 +83,7 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
         actionParams: String
     ) {
         viewModelScope.launch {
-            val preset = parseCronPreset(cronExpression)
-            val intervalMinutes = presetToIntervalMinutes(preset)
+            val intervalMinutes = intervalMinutesForCron(cronExpression)
 
             val nextRun = calculateNextRun(intervalMinutes)
 
@@ -91,8 +107,7 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
 
     fun updateTask(task: ScheduledTask) {
         viewModelScope.launch {
-            val preset = parseCronPreset(task.cronExpression)
-            val intervalMinutes = presetToIntervalMinutes(preset)
+            val intervalMinutes = intervalMinutesForCron(task.cronExpression)
 
             val nextRun = if (task.isEnabled) {
                 calculateNextRun(intervalMinutes)
@@ -112,8 +127,7 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
 
     fun toggleTaskEnabled(task: ScheduledTask) {
         viewModelScope.launch {
-            val preset = parseCronPreset(task.cronExpression)
-            val intervalMinutes = presetToIntervalMinutes(preset)
+            val intervalMinutes = intervalMinutesForCron(task.cronExpression)
 
             val updatedTask = if (!task.isEnabled) {
                 val nextRun = calculateNextRun(intervalMinutes)
@@ -167,28 +181,6 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
 
     private fun calculateNextRun(intervalMinutes: Long): Long {
         return System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(intervalMinutes)
-    }
-
-    private fun parseCronPreset(cronExpression: String): SchedulePreset {
-        return when (cronExpression) {
-            "* * * * *" -> SchedulePreset.EVERY_MINUTE
-            "*/5 * * * *" -> SchedulePreset.EVERY_5_MINUTES
-            "*/15 * * * *" -> SchedulePreset.EVERY_15_MINUTES
-            "0 * * * *" -> SchedulePreset.EVERY_HOUR
-            "0 9 * * *" -> SchedulePreset.EVERY_DAILY
-            else -> SchedulePreset.CUSTOM
-        }
-    }
-
-    private fun presetToIntervalMinutes(preset: SchedulePreset): Long {
-        return when (preset) {
-            SchedulePreset.EVERY_MINUTE -> 1
-            SchedulePreset.EVERY_5_MINUTES -> 5
-            SchedulePreset.EVERY_15_MINUTES -> 15
-            SchedulePreset.EVERY_HOUR -> 60
-            SchedulePreset.EVERY_DAILY -> 1440
-            SchedulePreset.CUSTOM -> 60
-        }
     }
 
     fun presetToCronExpression(preset: SchedulePreset): String {

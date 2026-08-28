@@ -84,4 +84,21 @@ class McpManagerTest {
         manager.reconnectServer("20")
         assertEquals(McpConnectionState.DISCONNECTED, manager.getConnectionState("20"))
     }
+
+    @Test
+    fun `headersFromJson extracts key value pairs`() {
+        val headers = headersFromJson("""{"Authorization":"Bearer abc","X-Test":"1"}""")
+        assertEquals("Bearer abc", headers["Authorization"])
+        assertEquals("1", headers["X-Test"])
+    }
+
+    @Test
+    fun `headersFromJson returns empty map for blank input`() {
+        assertTrue(headersFromJson("").isEmpty())
+    }
+
+    @Test
+    fun `headersFromJson returns empty map for invalid json`() {
+        assertTrue(headersFromJson("{invalid").isEmpty())
+    }
 }

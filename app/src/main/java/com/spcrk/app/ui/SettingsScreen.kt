@@ -29,25 +29,24 @@ data class SettingsCategory(
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    onBackClick: () -> Unit,
-    isDarkTheme: Boolean,
-    onToggleTheme: (Boolean) -> Unit
+    onBackClick: () -> Unit
 ) {
+    val s = com.spcrk.app.ui.l10n.appStrings()
     val categories = listOf(
-        SettingsCategory("外观", "主题、颜色、字体、语言、缩放", Icons.Outlined.Palette, "settings/appearance"),
-        SettingsCategory("AI 提供商", "API Key、Base URL、模型同步", Icons.Outlined.Cloud, "settings/providers"),
-        SettingsCategory("模型设置", "默认模型、快速模型、翻译模型", Icons.Outlined.Psychology, "settings/model-config"),
-        SettingsCategory("MCP 服务器", "服务器管理、工具、资源、日志", Icons.Outlined.Hub, "settings/mcp"),
-        SettingsCategory("Skill 管理", "安装和管理 Skill 扩展", Icons.Outlined.Extension, "settings/skills"),
-        SettingsCategory("数据管理", "备份、导入导出、云存储", Icons.Outlined.Storage, "settings/data"),
-        SettingsCategory("依赖设置", "Python、Node.js、本地模型", Icons.Outlined.Code, "settings/dependencies"),
-        SettingsCategory("本地模型", "嵌入模型、GGUF 下载、本地推理", Icons.Outlined.Memory, "settings/local-models"),
-        SettingsCategory("文件处理", "PDF 解析、OCR 设置", Icons.Outlined.Description, "settings/file-processing"),
-        SettingsCategory("搜索设置", "搜索引擎、API Key、自定义实例", Icons.Outlined.Search, "settings/search"),
-        SettingsCategory("用量统计", "Token 用量和费用统计", Icons.Outlined.BarChart, "settings/stats"),
-        SettingsCategory("定时任务", "管理定时执行的任务", Icons.Outlined.Schedule, "settings/schedules"),
-        SettingsCategory("通知", "通知开关和类型配置", Icons.Outlined.Notifications, "settings/notifications"),
-        SettingsCategory("关于", "版本信息和开源许可", Icons.Outlined.Info, "settings/about")
+        SettingsCategory(s.appearanceTitle, s.appearanceSubtitle, Icons.Outlined.Palette, "settings/appearance"),
+        SettingsCategory(s.providersTitle, s.providersSubtitle, Icons.Outlined.Cloud, "settings/providers"),
+        SettingsCategory(s.modelConfigTitle, s.modelConfigSubtitle, Icons.Outlined.Psychology, "settings/model-config"),
+        SettingsCategory(s.mcpTitle, s.mcpSubtitle, Icons.Outlined.Hub, "settings/mcp"),
+        SettingsCategory(s.skillsTitle, s.skillsSubtitle, Icons.Outlined.Extension, "settings/skills"),
+        SettingsCategory(s.dataTitle, s.dataSubtitle, Icons.Outlined.Storage, "settings/data"),
+        SettingsCategory(s.dependenciesTitle, s.dependenciesSubtitle, Icons.Outlined.Code, "settings/dependencies"),
+        SettingsCategory(s.localModelsTitle, s.localModelsSubtitle, Icons.Outlined.Memory, "settings/local-models"),
+        SettingsCategory(s.fileProcessingTitle, s.fileProcessingSubtitle, Icons.Outlined.Description, "settings/file-processing"),
+        SettingsCategory(s.searchTitle, s.searchSubtitle, Icons.Outlined.Search, "settings/search"),
+        SettingsCategory(s.statsTitle, s.statsSubtitle, Icons.Outlined.BarChart, "settings/stats"),
+        SettingsCategory(s.schedulesTitle, s.schedulesSubtitle, Icons.Outlined.Schedule, "settings/schedules"),
+        SettingsCategory(s.notificationsTitle, s.notificationsSubtitle, Icons.Outlined.Notifications, "settings/notifications"),
+        SettingsCategory(s.aboutTitle, s.aboutSubtitle, Icons.Outlined.Info, "settings/about")
     )
 
     Scaffold(
@@ -55,14 +54,14 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "设置",
+                        text = s.settings,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

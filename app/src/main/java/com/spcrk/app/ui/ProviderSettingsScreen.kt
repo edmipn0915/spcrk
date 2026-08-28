@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.spcrk.app.data.model.ModelConfig
 import com.spcrk.app.data.ModelConfigStore
 import com.spcrk.app.ai.presetModelsByProvider
-import com.spcrk.app.ai.providerBaseUrls
 import com.spcrk.app.ai.providerDisplayName
 import com.spcrk.app.getAppContainer
 import com.spcrk.app.ui.theme.TechCard
@@ -60,14 +59,15 @@ fun ProviderSettingsScreen(
     val store = getAppContainer(context).modelConfigStore
 
     var configs by remember { mutableStateOf(store.loadConfigs()) }
-    var providers by remember { mutableStateOf(store.getProviders()) }
     var selectedProvider by remember { mutableStateOf<String?>(null) }
     var showAddPresetDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
 
+    // 主列表顯示全部供應商（ProviderCatalog 60 家），未配置的顯示「尚未配置」
+    val providers = com.spcrk.app.ai.ProviderCatalog.all.map { it.id }
+
     fun refresh() {
         configs = store.loadConfigs()
-        providers = store.getProviders()
     }
 
     Scaffold(
@@ -143,7 +143,6 @@ fun ProviderSettingsScreen(
                 )
                 items(sortedProviders) { provider ->
                     val models = configs.filter { it.provider == provider }
-                    if (models.isEmpty()) return@items
                     ProviderListCard(
                         provider = provider,
                         models = models,
@@ -207,7 +206,8 @@ private fun ProviderListCard(
     onClick: () -> Unit,
     onToggleGroup: (Boolean) -> Unit
 ) {
-    val first = models.first()
+    val first = models.firstOrNull()
+    val hasModels = first != null
     TechCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -227,7 +227,7 @@ private fun ProviderListCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        providerDisplayName(provider),
+                        com.spcrk.app.ai.ProviderCatalog.displayName(provider),
                         style = MaterialTheme.typography.titleMedium
                     )
                     if (tags.contains("recommended")) {
@@ -240,13 +240,15 @@ private fun ProviderListCard(
                     }
                 }
                 Text(
-                    "${models.size} 个模型 · ${first.baseUrl}",
+                    if (hasModels) "${models.size} 个模型 · ${first?.baseUrl ?: ""}"
+                    else "尚未配置 · 点击添加模型",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TechSwitch(
-                checked = first.isEnabled,
+                checked = first?.isEnabled ?: false,
+                enabled = hasModels,
                 onCheckedChange = onToggleGroup
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -794,68 +796,7 @@ private fun AddProviderDialog(
     var modelName by remember { mutableStateOf("gpt-4o-mini") }
     var expanded by remember { mutableStateOf(false) }
 
-    val providerTypes = listOf(
-        "openai" to "OpenAI",
-        "anthropic" to "Anthropic",
-        "gemini" to "Google Gemini",
-        "deepseek" to "DeepSeek",
-        "grok" to "xAI Grok",
-        "mistral" to "Mistral",
-        "cerebras" to "Cerebras",
-        "mimo" to "Xiaomi MiMo",
-        "zhipu" to "智谱 GLM",
-        "moonshot" to "Moonshot",
-        "baichuan" to "百川 AI",
-        "dashscope" to "通义千问",
-        "stepfun" to "阶跃星辰",
-        "doubao" to "豆包",
-        "minimax" to "MiniMax",
-        "perplexity" to "Perplexity",
-        "nvidia" to "NVIDIA",
-        "groq" to "Groq",
-        "together" to "Together",
-        "fireworks" to "Fireworks",
-        "huggingface" to "Hugging Face",
-        "jina" to "Jina",
-        "voyageai" to "VoyageAI",
-        "azure-openai" to "Azure OpenAI",
-        "vertexai" to "VertexAI",
-        "aws-bedrock" to "AWS Bedrock",
-        "github" to "GitHub Models",
-        "copilot" to "GitHub Copilot",
-        "modelscope" to "ModelScope",
-        "xirang" to "息壤",
-        "ollama" to "Ollama",
-        "lmstudio" to "LM Studio",
-        "ovms" to "OpenVINO",
-        "gpustack" to "GPUStack",
-        "cherryin" to "CherryIN",
-        "silicon" to "Silicon",
-        "aihubmix" to "AiHubMix",
-        "openrouter" to "OpenRouter",
-        "new-api" to "New API",
-        "dmxapi" to "DMXAPI",
-        "ocoolai" to "ocoolAI",
-        "302ai" to "302.AI",
-        "aionly" to "AIOnly",
-        "burncloud" to "BurnCloud",
-        "lanyun" to "蓝云",
-        "ph8" to "PH8",
-        "sophnet" to "SophNet",
-        "ppio" to "PPIO",
-        "qiniu" to "七牛",
-        "alayanew" to "AlayaNew",
-        "tokenhub" to "TokenHub",
-        "baidu-cloud" to "百度千帆",
-        "radeon-cloud" to "AMD GPU Cloud",
-        "opencode" to "OpenCode",
-        "grok-cli" to "Grok CLI",
-        "longcat" to "LongCat",
-        "gateway" to "Vercel AI Gateway",
-        "poe" to "Poe",
-        "agnes-ai" to "Agnes AI",
-        "custom" to "自定义"
-    )
+    val providerTypes = com.spcrk.app.ai.ProviderCatalog.all.map { it.id to it.displayName }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -887,7 +828,7 @@ private fun AddProviderDialog(
                                 onClick = {
                                     provider = value
                                     expanded = false
-                                    baseUrl = providerBaseUrls[value] ?: ""
+                                    baseUrl = com.spcrk.app.ai.ProviderCatalog.baseUrl(value)
                                     modelName = presetModelsByProvider[value]?.firstOrNull() ?: ""
                                 }
                             )

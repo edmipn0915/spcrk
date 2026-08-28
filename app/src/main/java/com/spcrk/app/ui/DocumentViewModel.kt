@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.spcrk.app.AppContainer
 import com.spcrk.app.getAppContainer
 import com.spcrk.app.ai.api.DocumentService
 import com.spcrk.app.data.KnowledgeDocument
@@ -22,11 +21,17 @@ data class DocumentUiState(
     val errorMessage: String? = null
 )
 
-class DocumentViewModel(application: Application) : AndroidViewModel(application) {
+class DocumentViewModel internal constructor(
+    application: Application,
+    private val repository: Repository,
+    private val documentService: DocumentService
+) : AndroidViewModel(application) {
 
-    private val container: AppContainer = getAppContainer(application)
-    private val repository = container.repository
-    private val documentService = container.documentService
+    constructor(application: Application) : this(
+        application,
+        getAppContainer(application).repository,
+        getAppContainer(application).documentService
+    )
 
     private val _uiState = MutableStateFlow(DocumentUiState())
     val uiState: StateFlow<DocumentUiState> = _uiState.asStateFlow()
@@ -44,10 +49,10 @@ class DocumentViewModel(application: Application) : AndroidViewModel(application
     fun getDocuments(): Flow<List<KnowledgeDocument>> = repository.getAllKnowledgeDocuments()
     fun getErrorMessage(): String? = _uiState.value.errorMessage
 
-    fun loadDocument(uri: String) {
+    fun loadDocument(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                val docInfo = documentService.loadDocument(android.net.Uri.parse(uri))
+                val docInfo = documentService.loadDocument(uri)
                 val id = documentService.saveToKnowledgeBase(docInfo)
                 if (id > 0) loadDocuments()
             } catch (e: Exception) {

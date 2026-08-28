@@ -50,7 +50,13 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             if (deleteFile) {
                 try {
-                    File(history.filePath).delete()
+                    if (com.spcrk.app.downloader.PlaybackUri.isContentUri(history.filePath)) {
+                        // Android 10+ MediaStore 檔案需透過 ContentResolver 刪除
+                        getApplication<Application>().contentResolver
+                            .delete(android.net.Uri.parse(history.filePath), null, null)
+                    } else {
+                        File(history.filePath).delete()
+                    }
                 } catch (e: Exception) {
                     println("[HistoryViewModel] delete file failed: ${e.message}")
                 }

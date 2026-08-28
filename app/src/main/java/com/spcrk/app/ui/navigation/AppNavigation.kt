@@ -105,25 +105,27 @@ data class BottomNavTab(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
-val bottomNavTabs = listOf(
-    BottomNavTab(Screen.Home, "主页", Icons.Default.Home),
-    BottomNavTab(Screen.AiChat, "AI聊天", Icons.Default.Chat),
-    BottomNavTab(Screen.Knowledge, "知识库", Icons.Default.MenuBook),
-    BottomNavTab(Screen.Settings, "设置", Icons.Default.Settings)
-)
+@Composable
+fun bottomNavTabs(): List<BottomNavTab> {
+    val s = com.spcrk.app.ui.l10n.appStrings()
+    return listOf(
+        BottomNavTab(Screen.Home, s.home, Icons.Default.Home),
+        BottomNavTab(Screen.AiChat, s.aiChat, Icons.Default.Chat),
+        BottomNavTab(Screen.Knowledge, s.knowledge, Icons.Default.MenuBook),
+        BottomNavTab(Screen.Settings, s.settings, Icons.Default.Settings)
+    )
+}
 
 @Composable
-fun AppNavigation(
-    isDarkTheme: Boolean,
-    onToggleTheme: (Boolean) -> Unit
-) {
+fun AppNavigation() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val showBottomBar = currentRoute in bottomNavTabs.map { it.screen.route }
+    val tabs = bottomNavTabs()
+    val showBottomBar = currentRoute in tabs.map { it.screen.route }
 
-    val topLevelRoutes = bottomNavTabs.map { it.screen.route }.toSet()
+    val topLevelRoutes = tabs.map { it.screen.route }.toSet()
 
     // 最近一次二级页面点击的屏幕坐标，供 fissionEnter 计算“从点击原点向外炸开”方向
     var lastClickOffset by rememberSaveable(stateSaver = OffsetSaver) { mutableStateOf<Offset?>(null) }
@@ -140,7 +142,7 @@ fun AppNavigation(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    bottomNavTabs.forEach { tab ->
+                    tabs.forEach { tab ->
                         NavigationBarItem(
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
                             label = { Text(tab.label) },
@@ -237,9 +239,7 @@ fun AppNavigation(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     navController = navController,
-                    onBackClick = { navController.popBackStack() },
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = onToggleTheme
+                    onBackClick = { navController.popBackStack() }
                 )
             }
             composable(Screen.History.route) {
@@ -331,9 +331,7 @@ fun AppNavigation(
             }
             composable(Screen.SettingsAppearance.route) {
                 AppearanceSettingsScreen(
-                    onBackClick = { navController.popBackStack() },
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = onToggleTheme
+                    onBackClick = { navController.popBackStack() }
                 )
             }
             composable(Screen.SettingsProviders.route) {

@@ -1,7 +1,9 @@
-﻿package com.spcrk.app.downloader
+package com.spcrk.app.downloader
 
 import com.spcrk.app.model.VideoInfo
 import com.spcrk.app.model.VideoQuality
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -33,6 +35,15 @@ abstract class BaseVideoParser : VideoParser {
         return client.newCall(request).execute().body?.string() ?: ""
     }
 
+    /** 取得最終網址（追蹤 302 重定向），用於展開 b23.tv 等短連結。 */
+    protected fun resolveFinalUrl(url: String): String {
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .build()
+        return client.newCall(request).execute().request.url.toString()
+    }
+
     protected fun extractTitle(html: String, selectors: List<String>): String {
         val doc = Jsoup.parse(html)
         for (selector in selectors) {
@@ -55,7 +66,7 @@ class BilibiliParser : BaseVideoParser() {
 
     override suspend fun parse(url: String): VideoInfo {
         val videoId = extractBilibiliVideoId(url)
-        
+
         // Get video info
         val infoUrl = "https://api.bilibili.com/x/web-interface/view?bvid=$videoId"
         val infoResponse = fetchPage(infoUrl, "https://www.bilibili.com")
@@ -106,69 +117,62 @@ class BilibiliParser : BaseVideoParser() {
     }
 
     private fun extractBilibiliVideoId(url: String): String {
-        val regex = Regex("BV[A-Za-z0-9]+")
-        return regex.find(url)?.value
-            ?: throw Exception("无法解析B站视频ID")
+        // 手機 APP 分享的 b23.tv 短連結不含 BV 號，先 302 展開成完整網頁網址再提取
+        val effectiveUrl = if (VideoUrlParser.needsBilibiliRedirect(url)) {
+            resolveFinalUrl(url)
+        } else {
+            url
+        }
+        return VideoUrlParser.extractBilibiliVideoId(effectiveUrl)
+            ?: throw Exception("无法解析B站视频ID，请使用网页端链接（https://www.bilibili.com/video/BVxxx）")
     }
 }
 
 class YouTubeParser : BaseVideoParser() {
 
     override suspend fun parse(url: String): VideoInfo {
-        val videoId = extractYouTubeVideoId(url)
-        val html = fetchPage("https://www.youtube.com/watch?v=$videoId", "https://www.youtube.com")
+        val videoId = VideoUrlParser.extractYouTubeVideoId(url)
+            ?: throw Exception("无法解析YouTube视频ID，请检查链接格式")
 
-        val title = extractTitle(html, listOf(
-            "meta[property=og:title]",
-            "title"
-        )).replace(" - YouTube", "")
-
-        val thumbnailUrl = "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
-
-        // Try to extract video URL from page source
-        val videoUrl = extractYouTubeVideoUrl(html)
-
-        return VideoInfo(
-            title = title,
-            url = url,
-            platform = "YouTube",
-            thumbnailUrl = thumbnailUrl,
-            videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl ?: "", "720P"),
-                VideoQuality("标清", videoUrl ?: "", "360P")
+        // 使用 java-youtube-downloader 解析器（比 Regex 抓取更穩定）
+        return withContext(Dispatchers.IO) {
+            val downloader = com.github.kiulian.downloader.YoutubeDownloader()
+            val response = downloader.getVideoInfo(
+                com.github.kiulian.downloader.downloader.request.RequestVideoInfo(videoId)
             )
-        )
-    }
-
-    private fun extractYouTubeVideoUrl(html: String): String? {
-        val patterns = listOf(
-            Regex("\"url\":\"(https?://[^\"]+\\.googlevideo\\.com[^\"]+)\""),
-            Regex("\"url\":\"(https?://[^\"]+/videoplayback[^\"]+)\""),
-            Regex("\"url_encoded_fmt_stream_map\":\"([^\"]+)\"")
-        )
-        
-        for (pattern in patterns) {
-            val match = pattern.find(html)
-            if (match != null) {
-                return match.groupValues[1].replace("\\u0026", "&")
+            if (!response.ok()) {
+                throw Exception("解析YouTube视频失败: ${response.error()?.message ?: "未知错误"}")
             }
-        }
-        return null
-    }
+            val info = response.data() ?: throw Exception("解析YouTube视频失败：返回为空")
+            val details = info.details()
 
-    private fun extractYouTubeVideoId(url: String): String {
-        val patterns = listOf(
-            Regex("(?:v=|/v/|youtu\\.be/|/embed/|/shorts/)([\\w-]{11})"),
-            Regex("([\\w-]{11})$")
-        )
-        for (pattern in patterns) {
-            val match = pattern.find(url)
-            if (match != null) {
-                return match.groupValues[1]
+            // 挑選最佳的含音軌畫質（720p 以上優先，避免音訊分離問題）
+            val formats = info.videoWithAudioFormats()
+            if (formats.isEmpty()) {
+                throw Exception("无法获取YouTube下载地址，视频可能受版权保护或不可用")
             }
+            val format = formats.maxByOrNull { it.height() ?: 0 }
+            val videoUrl = format?.url()
+
+            VideoInfo(
+                title = details.title().replace(" - YouTube", ""),
+                url = url,
+                platform = "YouTube",
+                thumbnailUrl = details.thumbnails().firstOrNull(),
+                duration = details.lengthSeconds().toLong(),
+                videoUrl = videoUrl,
+                qualities = formats.mapNotNull { f ->
+                    val h = f.height()
+                    val label = when {
+                        h == null -> "标准"
+                        h >= 1080 -> "超清"
+                        h >= 720 -> "高清"
+                        else -> "标清"
+                    }
+                    VideoQuality(label, f.url() ?: "", "${h ?: 360}P")
+                }
+            )
         }
-        throw Exception("无法解析YouTube视频ID")
     }
 }
 

@@ -93,8 +93,12 @@ fun HistoryScreen(
                         HistoryItem(
                             history = history,
                             onItemClick = {
-                                val authority = context.packageName + ".provider"
-                                val uri = FileProvider.getUriForFile(context, authority, File(history.filePath))
+                                val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(history.filePath)) {
+                                    Uri.parse(history.filePath)
+                                } else {
+                                    val authority = context.packageName + ".provider"
+                                    FileProvider.getUriForFile(context, authority, File(history.filePath))
+                                }
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
                                     setDataAndType(uri, "video/*")
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -102,8 +106,12 @@ fun HistoryScreen(
                                 context.startActivity(intent)
                             },
                             onShareClick = {
-                                val authority = context.packageName + ".provider"
-                                val uri = FileProvider.getUriForFile(context, authority, File(history.filePath))
+                                val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(history.filePath)) {
+                                    Uri.parse(history.filePath)
+                                } else {
+                                    val authority = context.packageName + ".provider"
+                                    FileProvider.getUriForFile(context, authority, File(history.filePath))
+                                }
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "video/*"
                                     putExtra(Intent.EXTRA_STREAM, uri)

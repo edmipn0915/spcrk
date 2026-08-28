@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.spcrk.app.AppContainer
 import com.spcrk.app.getAppContainer
 import com.spcrk.app.ai.api.SkillService
+import com.spcrk.app.data.Repository
 import com.spcrk.app.data.Skill
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,11 +18,17 @@ data class SkillManageUiState(
     val isLoading: Boolean = true
 )
 
-class SkillManageViewModel(application: Application) : AndroidViewModel(application) {
+class SkillManageViewModel internal constructor(
+    application: Application,
+    private val repository: Repository,
+    private val skillService: SkillService
+) : AndroidViewModel(application) {
 
-    private val container: AppContainer = getAppContainer(application)
-    private val repository = container.repository
-    private val skillService = container.skillService
+    constructor(application: Application) : this(
+        application,
+        getAppContainer(application).repository,
+        getAppContainer(application).skillService
+    )
 
     private val _uiState = MutableStateFlow(SkillManageUiState())
     val uiState: StateFlow<SkillManageUiState> = _uiState.asStateFlow()
@@ -53,7 +59,7 @@ class SkillManageViewModel(application: Application) : AndroidViewModel(applicat
 
     fun addSkill(skill: Skill) {
         viewModelScope.launch {
-            repository.addSkill(skill)
+            // installSkill 內部自行負責 repository 插入，避免雙重插入
             skillService.installSkill(skill)
         }
     }

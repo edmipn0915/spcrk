@@ -22,38 +22,27 @@ class ModelConfigStore(private val context: Context) {
     fun saveConfigs(modelConfigs: List<ModelConfig>) {
         _configs.value = modelConfigs
         val editor = prefs.edit()
-        modelConfigs.forEach { config ->
-            editor.putString("model_${config.id}", config.name)
-            editor.putString("model_${config.id}_provider", config.provider)
-            editor.putString("model_${config.id}_baseUrl", config.baseUrl)
-            editor.putString("model_${config.id}_modelName", config.modelName)
-            editor.putFloat("model_${config.id}_temperature", config.temperature)
-            editor.putInt("model_${config.id}_maxTokens", config.maxTokens)
-            editor.putInt("model_${config.id}_timeout", config.timeout)
-            editor.putBoolean("model_${config.id}_enabled", config.isEnabled)
-            editor.putBoolean("model_${config.id}_default", config.isDefault)
+        // 清除所有舊配置 key，避免刪除的配置殘留復活
+        ModelConfigSerializer.storedIds(prefs.all).forEach { id ->
+            ModelConfigSerializer.configKeys(id).forEach { key -> editor.remove(key) }
+        }
+        editor.remove(ModelConfigSerializer.IDS_KEY)
+        ModelConfigSerializer.encode(modelConfigs).forEach { (key, value) ->
+            when (value) {
+                is String -> editor.putString(key, value)
+                is Int -> editor.putInt(key, value)
+                is Float -> editor.putFloat(key, value)
+                is Boolean -> editor.putBoolean(key, value)
+            }
         }
         editor.putString("default_model_id", _defaultModelId.value)
         editor.apply()
     }
 
     fun loadConfigs(): List<ModelConfig> {
-        val configs = mutableListOf<ModelConfig>()
-        for (i in 0 until prefs.all.size) {
-            val key = prefs.all.keys.toList()[i]
-            if (key.startsWith("model_")) {
-                val id = key.removePrefix("model_")
-                val name = prefs.getString("model_${id}", "") ?: ""
-                val provider = prefs.getString("model_${id}_provider", "custom") ?: "custom"
-                val baseUrl = prefs.getString("model_${id}_baseUrl", DefaultValues.DEFAULT_BASE_URL) ?: DefaultValues.DEFAULT_BASE_URL
-                val modelName = prefs.getString("model_${id}_modelName", DefaultValues.DEFAULT_MODEL_NAME) ?: DefaultValues.DEFAULT_MODEL_NAME
-                val temperature = prefs.getFloat("model_${id}_temperature", 0.7f)
-                val maxTokens = prefs.getInt("model_${id}_maxTokens", 4096)
-                val timeout = prefs.getInt("model_${id}_timeout", 60)
-                val isEnabled = prefs.getBoolean("model_${id}_enabled", true)
-                val isDefault = prefs.getBoolean("model_${id}_default", false)
-                configs.add(ModelConfig(id, name, provider, "", baseUrl, modelName, temperature, maxTokens, isEnabled, isDefault, timeout))
-            }
+        val prefsSnapshot = prefs.all
+        val configs = ModelConfigSerializer.storedIds(prefsSnapshot).map { id ->
+            ModelConfigSerializer.decode(id, prefsSnapshot)
         }
         _defaultModelId.value = prefs.getString("default_model_id", "") ?: ""
         _translateModelId.value = prefs.getString("translate_model_id", "") ?: ""
