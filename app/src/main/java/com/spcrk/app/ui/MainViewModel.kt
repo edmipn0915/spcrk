@@ -36,8 +36,8 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
-    private val videoDownloader = VideoDownloader()
     private val container: AppContainer = getAppContainer(app)
+    private val videoDownloader = container.videoDownloader
     private val repository = container.repository
     private var downloadJob: Job? = null
 

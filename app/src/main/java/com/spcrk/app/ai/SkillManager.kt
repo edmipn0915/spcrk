@@ -15,9 +15,11 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-class SkillManager(private val application: Application) : SkillService {
+class SkillManager(
+    private val application: Application,
+    private val searchEngine: SearchEngine
+) : SkillService {
     private val repository = getAppContainer(application).repository
-    private val searchEngine = SearchEngine()
     private val skillTriggers = mutableMapOf<String, suspend (String) -> String>()
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)

@@ -93,9 +93,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = container.repository
     private val modelStore = container.modelConfigStore
     private val settingsStore = container.settingsStore
-    private val aiManager = AIManager()
+    private val aiManager = container.aiManager
     private val streamProcessor = ChatStreamProcessor(aiManager)
-    private val searchEngine = SearchEngine()
+    private val searchEngine = container.searchEngine
     private val mcpService = container.mcpService
     private val conversationBuilder = ConversationBuilder(
         getUiState = { _uiState.value },

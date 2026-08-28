@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 
 class DocumentManager(
     private val context: Context,
-    private val repository: Repository = Repository(context)
+    private val repository: Repository
 ) : DocumentService {
     companion object {
         const val MAX_FILE_SIZE = 10 * 1024 * 1024

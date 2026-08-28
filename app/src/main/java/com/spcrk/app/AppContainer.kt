@@ -19,6 +19,7 @@ interface AppContainer {
     val documentService: DocumentService
     val ocrService: OcrService
     val localModelService: LocalModelService
+    val videoDownloader: com.spcrk.app.downloader.VideoDownloader
     val settingsStore: SettingsStore
     val modelConfigStore: ModelConfigStore
 }

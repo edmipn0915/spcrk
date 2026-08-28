@@ -22,7 +22,7 @@ class CodeAssistantViewModel(application: Application) : AndroidViewModel(applic
     private val container = getAppContainer(application)
     private val modelStore = container.modelConfigStore
     private val settingsStore = container.settingsStore
-    private val aiManager = AIManager()
+    private val aiManager = container.aiManager
     private val _uiState = MutableStateFlow(CodeUiState())
     val uiState: StateFlow<CodeUiState> = _uiState.asStateFlow()
 
