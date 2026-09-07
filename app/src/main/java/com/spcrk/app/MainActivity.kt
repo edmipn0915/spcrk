@@ -42,6 +42,8 @@ class MainActivity : ComponentActivity() {
             val fontSize by settingsStore.fontSizeFlow.collectAsState(initial = 14)
             val zoomFactor by settingsStore.zoomFactorFlow.collectAsState(initial = 1.0f)
             val language by settingsStore.languageFlow.collectAsState(initial = "zh")
+            val background by settingsStore.backgroundFlow.collectAsState(initial = "bg1")
+            val customBackgroundUri by settingsStore.customBackgroundUriFlow.collectAsState(initial = "")
 
             val isDarkTheme = when (themeMode) {
                 "dark" -> true
@@ -64,11 +66,20 @@ class MainActivity : ComponentActivity() {
                     selectedColor = Color(selectedColor),
                     fontSize = fontSize
                 ) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        AppNavigation()
+                        com.spcrk.app.ui.AppBackground(
+                            background = background,
+                            customUri = customBackgroundUri
+                        )
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            // 背景交由底层 AppBackground 渲染，根 Surface 保持透明
+                            color = Color.Transparent
+                        ) {
+                            AppNavigation()
+                        }
                     }
                 }
             }

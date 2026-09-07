@@ -27,6 +27,12 @@ class SettingsStore private constructor() {
     private val _selectedColorFlow = MutableStateFlow(0xFF00BCD4)
     val selectedColorFlow: StateFlow<Long> = _selectedColorFlow.asStateFlow()
 
+    private val _backgroundFlow = MutableStateFlow("bg1")
+    val backgroundFlow: StateFlow<String> = _backgroundFlow.asStateFlow()
+
+    private val _customBackgroundUriFlow = MutableStateFlow("")
+    val customBackgroundUriFlow: StateFlow<String> = _customBackgroundUriFlow.asStateFlow()
+
     private val _defaultModelIdFlow = MutableStateFlow("")
     val defaultModelIdFlow: StateFlow<String> = _defaultModelIdFlow.asStateFlow()
 
@@ -113,6 +119,8 @@ class SettingsStore private constructor() {
             _languageFlow.value = if (savedLanguage.isNullOrBlank()) systemDefaultLanguage() else savedLanguage
             _zoomFactorFlow.value = p.getFloat("zoom_factor", 1.0f)
             _selectedColorFlow.value = p.getLong("selected_color", 0xFF00BCD4)
+            _backgroundFlow.value = p.getString("background", "bg1") ?: "bg1"
+            _customBackgroundUriFlow.value = p.getString("custom_background_uri", "") ?: ""
             _showColorPicker.value = p.getBoolean("show_color_picker", false)
             _defaultModelIdFlow.value = p.getString("default_model_id", "") ?: ""
             _quickModelIdFlow.value = p.getString("quick_model_id", "") ?: ""
@@ -157,6 +165,16 @@ class SettingsStore private constructor() {
     fun setZoomFactor(factor: Float) {
         _zoomFactorFlow.value = factor
         prefs?.edit()?.putFloat("zoom_factor", factor)?.apply()
+    }
+
+    fun setBackground(key: String) {
+        _backgroundFlow.value = key
+        prefs?.edit()?.putString("background", key)?.apply()
+    }
+
+    fun setCustomBackgroundUri(uri: String) {
+        _customBackgroundUriFlow.value = uri
+        prefs?.edit()?.putString("custom_background_uri", uri)?.apply()
     }
 
     fun setShowColorPicker(show: Boolean) {

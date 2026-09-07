@@ -62,6 +62,7 @@ import com.spcrk.app.ui.ai.ChatScreen
 import com.spcrk.app.ui.theme.AnimationDistances
 import com.spcrk.app.ui.theme.fissionEnter
 import com.spcrk.app.ui.theme.fusionExit
+import com.spcrk.app.ui.theme.glass
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
@@ -140,9 +141,13 @@ fun AppNavigation() {
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar {
+                NavigationBar(
+                    modifier = Modifier.glass(),
+                    containerColor = Color.Transparent
+                ) {
                     tabs.forEach { tab ->
                         NavigationBarItem(
                             icon = { Icon(tab.icon, contentDescription = tab.label) },

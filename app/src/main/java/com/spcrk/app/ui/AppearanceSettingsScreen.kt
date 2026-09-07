@@ -20,6 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.getAppContainer
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +37,12 @@ fun AppearanceSettingsScreen(
     val zoomFactor by settingsStore.zoomFactorFlow.collectAsState(initial = 1.0f)
     val showColorPicker by settingsStore.showColorPicker.collectAsState(initial = false)
     val selectedColor by settingsStore.selectedColorFlow.collectAsState(initial = 0xFF00BCD4)
+    val background by settingsStore.backgroundFlow.collectAsState(initial = "bg1")
+
+    val context = LocalContext.current
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> pickBackgroundImage(context, uri, settingsStore) }
 
     Scaffold(
         topBar = {
@@ -89,6 +98,39 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                             selected = themeMode == "dark",
                             onClick = { settingsStore.setThemeMode("dark") }
                         )
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = s.backgroundTitle,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        BackgroundOption(s.bgNebula1, "bg1", background) { settingsStore.setBackground(it) }
+                        BackgroundOption(s.bgNebula2, "bg2", background) { settingsStore.setBackground(it) }
+                        BackgroundOption(s.bgNebula3, "bg3", background) { settingsStore.setBackground(it) }
+                        BackgroundOption(s.bgCustom, "custom", background) { settingsStore.setBackground(it) }
+                        if (background == "custom") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { pickImageLauncher.launch("image/*") },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Outlined.Image, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(s.uploadBackground)
+                            }
+                        }
                     }
                 }
             }
@@ -240,6 +282,47 @@ private fun ThemeModeOption(
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun BackgroundOption(
+    label: String,
+    key: String,
+    current: String,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .techRipple(onClick = { onSelect(key) })
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = current == key,
+            onClick = { onSelect(key) }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+private fun pickBackgroundImage(
+    context: android.content.Context,
+    uri: android.net.Uri?,
+    settingsStore: com.spcrk.app.data.SettingsStore
+) {
+    if (uri == null) return
+    val file = File(context.filesDir, "background_custom_${System.currentTimeMillis()}.png")
+    val copied = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        } != null
+    }.getOrDefault(false)
+    if (copied) {
+        settingsStore.setCustomBackgroundUri(android.net.Uri.fromFile(file).toString())
+        settingsStore.setBackground("custom")
     }
 }
 

@@ -62,6 +62,13 @@ interface AppStrings {
     val zhTraditional: String
     val english: String
     val japanese: String
+    // 背景設置
+    val backgroundTitle: String
+    val bgNebula1: String
+    val bgNebula2: String
+    val bgNebula3: String
+    val bgCustom: String
+    val uploadBackground: String
     // ---- AI 助手入口（AiChatScreen）----
     val aiHubTitle: String
     val aiHubChat: String
@@ -544,6 +551,12 @@ object AppStringsCatalog {
         override val zhTraditional = "繁體中文"
         override val english = "English"
         override val japanese = "日本語"
+        override val backgroundTitle = "背景"
+        override val bgNebula1 = "星云一"
+        override val bgNebula2 = "星云二"
+        override val bgNebula3 = "星云三"
+        override val bgCustom = "自定义"
+        override val uploadBackground = "上传背景"
         override val aiHubTitle = "AI 助手"
         override val aiHubChat = "对话"
         override val aiHubChatDesc = "与AI助手智能对话"
@@ -988,6 +1001,12 @@ object AppStringsCatalog {
         override val zhTraditional = "繁體中文"
         override val english = "English"
         override val japanese = "日本語"
+        override val backgroundTitle = "背景"
+        override val bgNebula1 = "星雲一"
+        override val bgNebula2 = "星雲二"
+        override val bgNebula3 = "星雲三"
+        override val bgCustom = "自訂"
+        override val uploadBackground = "上傳背景"
         override val aiHubTitle = "AI 助手"
         override val aiHubChat = "對話"
         override val aiHubChatDesc = "與 AI 助手智慧對話"
@@ -1432,6 +1451,12 @@ object AppStringsCatalog {
         override val zhTraditional = "Traditional Chinese"
         override val english = "English"
         override val japanese = "Japanese"
+        override val backgroundTitle = "Background"
+        override val bgNebula1 = "Nebula 1"
+        override val bgNebula2 = "Nebula 2"
+        override val bgNebula3 = "Nebula 3"
+        override val bgCustom = "Custom"
+        override val uploadBackground = "Upload Background"
         override val aiHubTitle = "AI Assistant"
         override val aiHubChat = "Chat"
         override val aiHubChatDesc = "Smart conversations with the AI assistant"
@@ -1876,6 +1901,12 @@ object AppStringsCatalog {
         override val zhTraditional = "繁体字中国語"
         override val english = "English"
         override val japanese = "日本語"
+        override val backgroundTitle = "背景"
+        override val bgNebula1 = "星雲1"
+        override val bgNebula2 = "星雲2"
+        override val bgNebula3 = "星雲3"
+        override val bgCustom = "カスタム"
+        override val uploadBackground = "背景をアップロード"
         override val aiHubTitle = "AIアシスタント"
         override val aiHubChat = "チャット"
         override val aiHubChatDesc = "AIアシスタントとスマートに会話"
