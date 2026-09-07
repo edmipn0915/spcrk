@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.McpServer
+import com.spcrk.app.ui.l10n.appStrings
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,6 +24,7 @@ fun McpSettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val s = appStrings()
 
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -31,10 +33,10 @@ fun McpSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MCP 服务器") },
+                title = { Text(s.mcpServersTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -44,7 +46,7 @@ fun McpSettingsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Outlined.Add, contentDescription = "添加服务器")
+                Icon(Icons.Outlined.Add, contentDescription = s.addServer)
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -65,13 +67,13 @@ fun McpSettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "暂无 MCP 服务器",
+                        s.noMcpServers,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "点击右下角按钮添加服务器",
+                        s.addMcpServerHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
@@ -100,12 +102,12 @@ fun McpSettingsScreen(
                         },
                         onViewTools = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("工具列表功能开发中")
+                                snackbarHostState.showSnackbar(s.toolsListWip)
                             }
                         },
                         onTest = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("连接测试功能开发中")
+                                snackbarHostState.showSnackbar(s.connectionTestWip)
                             }
                         }
                     )
@@ -134,6 +136,7 @@ private fun McpServerCard(
     onViewTools: () -> Unit,
     onTest: () -> Unit
 ) {
+    val s = appStrings()
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -167,10 +170,10 @@ private fun McpServerCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = onTest) { Text("测试") }
-                TextButton(onClick = onViewTools) { Text("工具") }
+                TextButton(onClick = onTest) { Text(s.test) }
+                TextButton(onClick = onViewTools) { Text(s.tools) }
                 TextButton(onClick = onDelete) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(s.delete, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -188,10 +191,11 @@ private fun AddMcpServerDialog(
     var args by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加 MCP 服务器") },
+        title = { Text(s.addMcpServer) },
         text = {
             Column {
                 ExposedDropdownMenuBox(
@@ -202,7 +206,7 @@ private fun AddMcpServerDialog(
                         value = connectionType.uppercase(),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("连接类型") },
+                        label = { Text(s.connectionType) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -227,14 +231,14 @@ private fun AddMcpServerDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("服务器名称") },
+                    label = { Text(s.serverName) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = command,
                     onValueChange = { command = it },
-                    label = { Text("命令 (npx / uvx)") },
+                    label = { Text(s.command) },
                     placeholder = { Text("npx @anthropic/mcp-server") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -242,7 +246,7 @@ private fun AddMcpServerDialog(
                 OutlinedTextField(
                     value = args,
                     onValueChange = { args = it },
-                    label = { Text("参数") },
+                    label = { Text(s.arguments) },
                     placeholder = { Text("-y --arg1 value") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -250,7 +254,7 @@ private fun AddMcpServerDialog(
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("URL (SSE 类型)") },
+                    label = { Text(s.urlLabel) },
                     placeholder = { Text("https://mcp.example.com/sse") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -273,12 +277,12 @@ private fun AddMcpServerDialog(
                     }
                 }
             ) {
-                Text("添加")
+                Text(s.add)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(s.cancel)
             }
         }
     )

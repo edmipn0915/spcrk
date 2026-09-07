@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -16,14 +17,15 @@ fun AssistantsScreen(
     onBackClick: () -> Unit,
     onNavigateToChat: () -> Unit
 ) {
+    val s = appStrings()
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("助手管理") },
+                title = { Text(s.assistantsTitle) },
                 navigationIcon = {
                     IconButton(onClick = {},
 modifier = Modifier.techRipple(onClick = onBackClick)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 }
             )
@@ -36,7 +38,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "助手管理功能开发中...",
+                text = s.assistantsWip,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

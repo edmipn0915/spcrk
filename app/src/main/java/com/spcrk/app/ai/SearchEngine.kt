@@ -48,6 +48,7 @@ fun providerDisplayName(provider: String): String = when (provider) {
     "aws-bedrock" -> "AWS Bedrock"
     "github" -> "GitHub Models"
     "copilot" -> "GitHub Copilot"
+    "agnes-ai" -> "Agnes AI"
     "custom" -> "自定义"
     else -> provider
 }
@@ -83,10 +84,12 @@ val providerBaseUrls: Map<String, String> = mapOf(
     "copilot" to "https://api.githubcopilot.com",
     "ollama" to "http://localhost:11434/v1",
     "lmstudio" to "http://localhost:1234/v1",
+    "agnes-ai" to "https://apihub.agnes-ai.com/v1",
     "custom" to ""
 )
 
 val presetModelsByProvider: Map<String, List<String>> = mapOf(
+    "agnes-ai" to listOf("agnes-2.5-flash", "agnes-2.0-flash"),
     "openai" to listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"),
     "anthropic" to listOf("claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"),
     "gemini" to listOf("gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"),
@@ -112,6 +115,7 @@ val presetModelsByProvider: Map<String, List<String>> = mapOf(
 )
 
 val providerTags: Map<String, List<String>> = mapOf(
+    "agnes-ai" to listOf("recommended", "paid"),
     "openai" to listOf("recommended", "paid"),
     "anthropic" to listOf("recommended", "paid"),
     "gemini" to listOf("free", "recommended"),
@@ -121,12 +125,26 @@ val providerTags: Map<String, List<String>> = mapOf(
 )
 
 val providerNotes: Map<String, String?> = mapOf(
+    "agnes-ai" to "OpenAI 相容聚合 API，官方文档 agnes-ai.com",
     "openai" to "最稳定的 API，模型丰富",
     "anthropic" to "Claude 系列，推理能力强",
     "gemini" to "Google Gemini，有免费额度",
     "deepseek" to "国内可用，性价比高",
     "ollama" to "本地运行，无需网络",
-    "lmstudio" to "本地运行，支持多种模型"
+    "lmstudio" to "本地运行，支持多种模型",
+    "silicon" to "国际站请改 https://api.siliconflow.com/v1",
+    "dmxapi" to "默认中国站 .cn；国际站请改 https://www.dmxapi.com/v1，须与帐号地区配对",
+    "ocoolai" to "默认香港；美国 api.ocoolai.com，马来 my.ocoolai.com",
+    "302ai" to "默认国际节点；大陆节点请改 https://api.302ai.cn/v1",
+    "baidu-cloud" to "百度千帆 V2 接口，key 需用 bce-v3- 开头（AK/SK 签发）",
+    "tokenhub" to "默认腾讯 TokenHub 境外站；境内请改 https://tokenhub.tencentmaas.com/v1",
+    "new-api" to "自托管：填你的 New API 伺服器位址 + /v1（Docker 预设 3000 端口）",
+    "gpustack" to "自托管：填你的 GPUStack 伺服器位址 + /v1",
+    "ovms" to "自托管：OpenVINO Model Server，OpenAI 相容端点为 http://伺服器:port/v3",
+    "xirang" to "息壤无固定端点，请从你帐号的服务详情页取得 Base URL",
+    "radeon-cloud" to "AMD GPU Cloud 为 GPU droplet，无固定端点，以实例 vLLM 位址为准",
+    "opencode" to "若为 OpenCode Zen 官方闸道请填 https://opencode.ai/zen/v1（名称有歧义故未预设）",
+    "grok-cli" to "Grok CLI 为终端 agent 非 API 供应商，底层请用 grok (xAI)"
 )
 
 object PresetModels {

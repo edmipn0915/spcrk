@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.KnowledgeCategory
 import com.spcrk.app.data.KnowledgeDocument
+import com.spcrk.app.ui.l10n.appStrings
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,6 +32,7 @@ fun KnowledgeScreen(
     navController: androidx.navigation.NavController,
     viewModel: KnowledgeViewModel = viewModel(factory = KnowledgeViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
+    val s = appStrings()
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -53,10 +55,10 @@ fun KnowledgeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("知识库") },
+                title = { Text(s.knowledge) },
                 actions = {
                     IconButton(onClick = { viewModel.toggleSearch(!uiState.isSearching) }) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                        Icon(Icons.Default.Search, contentDescription = s.aiHubSearch)
                     }
                 }
             )
@@ -69,7 +71,7 @@ fun KnowledgeScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Icon(Icons.Default.CreateNewFolder, contentDescription = "新建分类")
+                        Icon(Icons.Default.CreateNewFolder, contentDescription = s.newCategory)
                     }
                     FloatingActionButton(
                         onClick = {
@@ -79,7 +81,7 @@ fun KnowledgeScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Icon(Icons.Default.NoteAdd, contentDescription = "上传文档")
+                        Icon(Icons.Default.NoteAdd, contentDescription = s.uploadDocument)
                     }
                 }
                 FloatingActionButton(onClick = {
@@ -87,7 +89,7 @@ fun KnowledgeScreen(
                 }) {
                     Icon(
                         if (uiState.showCategorySelector) Icons.Default.Close else Icons.Default.Add,
-                        contentDescription = "添加"
+                        contentDescription = s.add
                     )
                 }
             }
@@ -107,7 +109,7 @@ fun KnowledgeScreen(
                     FilterChip(
                         selected = uiState.selectedCategoryId == null,
                         onClick = { viewModel.setSelectedCategoryId(null) },
-                        label = { Text("全部") }
+                        label = { Text(s.all) }
                     )
                 }
                 items(uiState.categories) { category ->
@@ -118,7 +120,7 @@ fun KnowledgeScreen(
                         trailingIcon = {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "移除分类",
+                                contentDescription = s.removeCategory,
                                 modifier = Modifier
                                     .size(16.dp)
                                     .clickable {
@@ -139,12 +141,12 @@ fun KnowledgeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("搜索文档...") },
+                    placeholder = { Text(s.searchDocumentsPlaceholder) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (uiState.searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "清除")
+                                Icon(Icons.Default.Clear, contentDescription = null)
                             }
                         }
                     },
@@ -166,14 +168,18 @@ fun KnowledgeScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = (if (uiState.isSearching) "未找到相关文档" else if (uiState.selectedCategoryId != null) "该分类下暂无文档" else "知识库为空"),
+                            text = when {
+                                uiState.isSearching -> s.emptySearchResult
+                                uiState.selectedCategoryId != null -> s.emptyCategory
+                                else -> s.emptyKnowledge
+                            },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         if (!uiState.isSearching && uiState.selectedCategoryId == null) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "点击右下角按钮上传文档或新建分类",
+                                text = s.emptyKnowledgeHint,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                             )
@@ -218,23 +224,24 @@ private fun AddCategoryDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String) -> Unit
 ) {
+    val s = appStrings()
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("rag") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("新建分类") },
+        title = { Text(s.newCategory) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("分类名称") },
+                    label = { Text(s.categoryName) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("分类类型", style = MaterialTheme.typography.bodyMedium)
+                Text(s.categoryType, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
@@ -243,9 +250,9 @@ private fun AddCategoryDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("RAG 模式", style = MaterialTheme.typography.bodyMedium)
+                        Text(s.ragMode, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "直接检索文档片段注入上下文",
+                            s.ragModeDesc,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -258,9 +265,9 @@ private fun AddCategoryDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("嵌入模式", style = MaterialTheme.typography.bodyMedium)
+                        Text(s.embeddingMode, style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "使用嵌入模型向量化后语义检索",
+                            s.embeddingModeDesc,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -273,12 +280,12 @@ private fun AddCategoryDialog(
                 onClick = { if (name.isNotBlank()) onConfirm(name, type) },
                 enabled = name.isNotBlank()
             ) {
-                Text("创建")
+                Text(s.create)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(s.cancel)
             }
         }
     )
@@ -291,6 +298,7 @@ fun KnowledgeDocumentItem(
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
+    val s = appStrings()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -337,7 +345,7 @@ fun KnowledgeDocumentItem(
                     }
                 }
                 Text(
-                    text = "${document.chunkCount} 个片段",
+                    text = java.lang.String.format(s.chunkCount, document.chunkCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -345,7 +353,7 @@ fun KnowledgeDocumentItem(
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = s.delete,
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -355,8 +363,8 @@ fun KnowledgeDocumentItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除文档") },
-            text = { Text("确定要删除「${document.title}」吗？此操作不可恢复。") },
+            title = { Text(s.deleteDocument) },
+            text = { Text(java.lang.String.format(s.deleteDocumentMessage, document.title)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -364,12 +372,12 @@ fun KnowledgeDocumentItem(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(s.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(s.cancel)
                 }
             }
         )

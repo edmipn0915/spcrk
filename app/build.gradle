@@ -88,8 +88,7 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.0'
     implementation 'com.google.android.gms:play-services-tasks:18.1.0'
 
-    // Video parsing
-    implementation 'com.github.sealedtx:java-youtube-downloader:3.2.3'
+    // Video parsing (YouTube 用自製 InnerTube ANDROID client，見 downloader/YouTubeInnerTube.kt)
 
     // Room
     implementation "androidx.room:room-runtime:2.6.1"

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.ai.SearchConfig
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.TechCard
 
 data class SearchEngineInfo(
@@ -54,6 +55,7 @@ fun SearchSettingsScreen(
 ) {
     val context = LocalContext.current
     val settingsStore = getAppContainer(context).settingsStore
+    val s = appStrings()
 
     var config by remember {
         mutableStateOf(
@@ -75,10 +77,10 @@ fun SearchSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("搜索设置") },
+                title = { Text(s.searchTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -96,7 +98,7 @@ fun SearchSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "搜索引擎",
+                s.searchEngineSection,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -113,7 +115,7 @@ fun SearchSettingsScreen(
                             value = currentEngineInfo.name,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("选择引擎") },
+                            label = { Text(s.selectEngine) },
                             leadingIcon = {
                                 Icon(Icons.Outlined.Search, contentDescription = null)
                             },
@@ -174,7 +176,7 @@ fun SearchSettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "访问 ${currentEngineInfo.name} 官网",
+                                String.format(s.visitWebsiteFormat, currentEngineInfo.name),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -191,7 +193,7 @@ fun SearchSettingsScreen(
             }
 
             Text(
-                "API 配置",
+                s.apiConfig,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -207,28 +209,28 @@ fun SearchSettingsScreen(
                                 config = config.copy(apiKey = it)
                                 settingsStore.setSearchApiKey(it)
                             },
-                            label = { Text("API Key") },
-                            placeholder = { Text("请输入 ${currentEngineInfo.name} API Key") },
+                            label = { Text(s.apiKeyLabel) },
+                            placeholder = { Text(String.format(s.enterApiKeyFormat, currentEngineInfo.name)) },
                             visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             singleLine = true,
                             trailingIcon = {
                                 TextButton(onClick = { showApiKey = !showApiKey }) {
-                                    Text(if (showApiKey) "隐藏" else "显示")
+                                    Text(if (showApiKey) s.hide else s.show)
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "API 地址: ${currentEngineInfo.apiEndpoint}",
+                            String.format(s.apiEndpointFormat, currentEngineInfo.apiEndpoint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                         if (currentEngineInfo.id == "exa-mcp") {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Exa MCP 为免费搜索服务，去 dashboard.exa.ai/api-keys 免费注册获取 API Key，无需付费",
+                                s.exaMcpHint,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -240,20 +242,20 @@ fun SearchSettingsScreen(
                                 config = config.copy(baseUrl = it)
                                 settingsStore.setSearchBaseUrl(it)
                             },
-                            label = { Text("SearXNG 实例地址") },
+                            label = { Text(s.searxngInstanceAddress) },
                             placeholder = { Text("https://your-searxng-instance.com") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "请输入你的 SearXNG 实例完整地址",
+                            s.searxngInstanceHint,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     } else {
                         Text(
-                            "${currentEngineInfo.name} 不需要 API Key",
+                            String.format(s.noApiKeyFormat, currentEngineInfo.name),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
@@ -262,7 +264,7 @@ fun SearchSettingsScreen(
             }
 
             Text(
-                "搜索参数",
+                s.searchParams,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -272,7 +274,7 @@ fun SearchSettingsScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "最大结果数: ${config.maxResults}",
+                        String.format(s.maxResultsFormat, config.maxResults),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -298,7 +300,7 @@ fun SearchSettingsScreen(
             }
 
             Text(
-                "URL 内容获取",
+                s.urlContentFetch,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -308,15 +310,15 @@ fun SearchSettingsScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        "从网页提取正文的方式",
+                        s.urlContentFetchDesc,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     val urlProviders = listOf(
-                        Triple("builtin", "内置解析", "Jsoup 本地解析，无需 API Key"),
-                        Triple("jina", "Jina AI", "https://r.jina.ai/ 高质量提取"),
-                        Triple("firecrawl", "Firecrawl", "API 调用，需 API Key")
+                        Triple("builtin", s.builtinParser, s.builtinParserDesc),
+                        Triple("jina", "Jina AI", s.jinaParserDesc),
+                        Triple("firecrawl", "Firecrawl", s.firecrawlParserDesc)
                     )
                     urlProviders.forEach { (id, name, desc) ->
                         Row(
@@ -366,7 +368,7 @@ fun SearchSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "Jina AI 官网",
+                            s.jinaWebsite,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -389,7 +391,7 @@ fun SearchSettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            "Firecrawl 官网",
+                            s.firecrawlWebsite,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -398,7 +400,7 @@ fun SearchSettingsScreen(
             }
 
             Text(
-                "支持的引擎",
+                s.supportedEngines,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -437,7 +439,7 @@ fun SearchSettingsScreen(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        "需API Key",
+                                        s.requiresApiKey,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -449,7 +451,7 @@ fun SearchSettingsScreen(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        "需实例",
+                                        s.requiresInstance,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -461,7 +463,7 @@ fun SearchSettingsScreen(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        "免费",
+                                        s.free,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)

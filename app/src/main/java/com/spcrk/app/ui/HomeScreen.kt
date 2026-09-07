@@ -40,6 +40,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.BreathingGlow
 import com.spcrk.app.ui.theme.StaggeredItem
 import com.spcrk.app.ui.theme.TechCard
@@ -60,6 +61,8 @@ fun HomeScreen(
     onNavigateToVideoDownload: (Offset) -> Unit,
     onNavigateToHistory: (Offset) -> Unit
 ) {
+    val s = appStrings()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,14 +79,14 @@ fun HomeScreen(
         ) {
             val features = listOf(
                 FeatureItem(
-                    title = "视频下载",
-                    description = "下载在线视频到本地",
+                    title = s.homeFeatureVideoDownload,
+                    description = s.homeFeatureVideoDownloadDesc,
                     iconEmoji = "📹",
                     onClick = onNavigateToVideoDownload
                 ),
                 FeatureItem(
-                    title = "历史记录",
-                    description = "查看下载历史和浏览记录",
+                    title = s.homeFeatureHistory,
+                    description = s.homeFeatureHistoryDesc,
                     iconEmoji = "🕒",
                     onClick = onNavigateToHistory
                 )
@@ -116,6 +119,7 @@ private data class FeatureItem(
 @Composable
 private fun EnergyCoreHeader() {
     val colorScheme = MaterialTheme.colorScheme
+    val s = appStrings()
 
     Box(
         modifier = Modifier
@@ -150,7 +154,7 @@ private fun EnergyCoreHeader() {
                 )
                 Icon(
                     imageVector = Icons.Filled.Bolt,
-                    contentDescription = "Sparck 灵愿",
+                    contentDescription = s.homeIconContentDescription,
                     tint = colorScheme.primary,
                     modifier = Modifier.size(48.dp)
                 )
@@ -164,7 +168,7 @@ private fun EnergyCoreHeader() {
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "本地引擎 · 运行中",
+                    text = s.homeEngineStatus,
                     style = MaterialTheme.typography.labelSmall,
                     color = colorScheme.onSurfaceVariant,
                     fontSize = 12.sp

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.Skill
+import com.spcrk.app.ui.l10n.appStrings
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +34,7 @@ fun SkillManageScreen(
     viewModel: SkillManageViewModel = viewModel(factory = SkillManageViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     val uiState by viewModel.uiState.collectAsState()
     val isLoading = uiState.isLoading
@@ -41,10 +43,10 @@ fun SkillManageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skill 管理") },
+                title = { Text(s.skillManageTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -57,7 +59,7 @@ fun SkillManageScreen(
             FloatingActionButton(
                 onClick = { showAddDialog = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "添加 Skill")
+                Icon(Icons.Default.Add, contentDescription = s.addSkill)
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -87,13 +89,13 @@ fun SkillManageScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "暂无 Skill",
+                        text = s.noSkills,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "点击 + 添加自定义 Skill",
+                        text = s.addSkillHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -151,6 +153,7 @@ private fun SkillItem(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
+    val s = appStrings()
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -212,7 +215,7 @@ private fun SkillItem(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Outlined.Delete,
-                    contentDescription = "删除",
+                    contentDescription = s.delete,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -226,6 +229,7 @@ private fun AddSkillDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, description: String, trigger: String, action: String, url: String, prefix: String, suffix: String) -> Unit
 ) {
+    val s = appStrings()
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var trigger by remember { mutableStateOf("") }
@@ -235,22 +239,22 @@ private fun AddSkillDialog(
     var suffix by remember { mutableStateOf("") }
 
     val actions = listOf(
-        "http_request" to "HTTP 请求",
-        "text_transform" to "文本转换"
+        "http_request" to s.httpRequest,
+        "text_transform" to s.textTransform
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
-            Text("添加 Skill", color = MaterialTheme.colorScheme.onSurface)
+            Text(s.addSkill, color = MaterialTheme.colorScheme.onSurface)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("名称", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text(s.name, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -264,7 +268,7 @@ private fun AddSkillDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("描述", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text(s.description, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -278,7 +282,7 @@ private fun AddSkillDialog(
                 OutlinedTextField(
                     value = trigger,
                     onValueChange = { trigger = it },
-                    label = { Text("触发词", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    label = { Text(s.triggerLabel, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -289,7 +293,7 @@ private fun AddSkillDialog(
                     singleLine = true
                 )
 
-                Text("动作类型", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                Text(s.actionType, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     actions.forEach { (value, label) ->
                         FilterChip(
@@ -310,7 +314,7 @@ private fun AddSkillDialog(
                     OutlinedTextField(
                         value = url,
                         onValueChange = { url = it },
-                        label = { Text("URL (使用 {input} 作为占位符)", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        label = { Text(s.urlPlaceholderLabel, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -326,7 +330,7 @@ private fun AddSkillDialog(
                     OutlinedTextField(
                         value = prefix,
                         onValueChange = { prefix = it },
-                        label = { Text("前缀", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        label = { Text(s.prefixLabel, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -339,7 +343,7 @@ private fun AddSkillDialog(
                     OutlinedTextField(
                         value = suffix,
                         onValueChange = { suffix = it },
-                        label = { Text("后缀", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        label = { Text(s.suffixLabel, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -360,12 +364,12 @@ private fun AddSkillDialog(
                     }
                 }
             ) {
-                Text("添加", color = MaterialTheme.colorScheme.primary)
+                Text(s.add, color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(s.cancel, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

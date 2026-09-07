@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,14 +24,15 @@ fun NotificationSettingsScreen(
     val notificationEnabled by settingsStore.notificationEnabledFlow.collectAsState(initial = true)
     val notificationSound by settingsStore.notificationSoundFlow.collectAsState(initial = true)
     val notificationVibration by settingsStore.notificationVibrationFlow.collectAsState(initial = true)
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("通知设置") },
+                title = { Text(s.notificationSettingsTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -55,22 +57,22 @@ fun NotificationSettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "通知开关",
+                            s.notificationSwitchTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         NotificationToggleRow(
-                            title = "启用通知",
-                            description = "接收应用通知",
+                            title = s.enableNotifications,
+                            description = s.enableNotificationsDesc,
                             icon = Icons.Outlined.Notifications,
                             checked = notificationEnabled,
                             onCheckedChange = { settingsStore.setNotificationEnabled(it) }
                         )
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         NotificationToggleRow(
-                            title = "通知声音",
-                            description = "通知时播放声音",
+                            title = s.notificationSoundTitle,
+                            description = s.notificationSoundDesc,
                             icon = Icons.Outlined.VolumeUp,
                             checked = notificationSound,
                             onCheckedChange = { settingsStore.setNotificationSound(it) },
@@ -78,8 +80,8 @@ fun NotificationSettingsScreen(
                         )
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         NotificationToggleRow(
-                            title = "通知振动",
-                            description = "通知时设备振动",
+                            title = s.notificationVibrationTitle,
+                            description = s.notificationVibrationDesc,
                             icon = Icons.Outlined.Vibration,
                             checked = notificationVibration,
                             onCheckedChange = { settingsStore.setNotificationVibration(it) },
@@ -98,30 +100,30 @@ fun NotificationSettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "通知类型",
+                            s.notificationTypesTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         NotificationToggleRow(
-                            title = "任务完成",
-                            description = "后台任务完成时通知",
+                            title = s.taskCompleteNotificationTitle,
+                            description = s.taskCompleteNotificationDesc,
                             icon = Icons.Outlined.TaskAlt,
                             checked = true,
                             onCheckedChange = { }
                         )
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         NotificationToggleRow(
-                            title = "任务失败",
-                            description = "后台任务失败时通知",
+                            title = s.taskFailNotificationTitle,
+                            description = s.taskFailNotificationDesc,
                             icon = Icons.Outlined.ErrorOutline,
                             checked = true,
                             onCheckedChange = { }
                         )
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         NotificationToggleRow(
-                            title = "更新提醒",
-                            description = "有新版本时通知",
+                            title = s.updateNotificationTitle,
+                            description = s.updateNotificationDesc,
                             icon = Icons.Outlined.SystemUpdate,
                             checked = true,
                             onCheckedChange = { }
@@ -139,7 +141,7 @@ fun NotificationSettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "免打扰模式",
+                            s.doNotDisturbTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -150,9 +152,9 @@ fun NotificationSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("开启免打扰", style = MaterialTheme.typography.bodyMedium)
+                                Text(s.enableDoNotDisturb, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    "设定时间段内不接收通知",
+                                    s.doNotDisturbDesc,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
@@ -164,7 +166,7 @@ fun NotificationSettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            "免打扰时间: 22:00 - 08:00",
+                            text = String.format(s.doNotDisturbTimeFormat, "22:00", "08:00"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )

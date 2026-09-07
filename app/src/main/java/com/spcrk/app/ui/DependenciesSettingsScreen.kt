@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,6 +21,7 @@ fun DependenciesSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val settingsStore = getAppContainer(LocalContext.current).settingsStore
+    val s = appStrings()
 
     val pythonPath by settingsStore.pythonPathFlow.collectAsState(initial = "")
     val nodePath by settingsStore.nodePathFlow.collectAsState(initial = "")
@@ -28,11 +30,11 @@ fun DependenciesSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("依赖设置") },
+                title = { Text(s.dependenciesTitle) },
                 navigationIcon = {
                     IconButton(onClick = {},
 modifier = Modifier.techRipple(onClick = onBackClick)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -50,15 +52,15 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
         ) {
             item {
                 DependencyCard(
-                    title = "Python 环境",
-                    description = "配置 Python 解释器路径，用于运行 MCP 服务器",
+                    title = s.pythonEnvironment,
+                    description = s.pythonEnvironmentDesc,
                     icon = Icons.Outlined.Code,
-                    status = if (pythonPath.isNotEmpty()) "已配置" else "未配置"
+                    status = if (pythonPath.isNotEmpty()) s.configured else s.notConfigured
                 ) {
                     OutlinedTextField(
                         value = pythonPath,
                         onValueChange = { settingsStore.setPythonPath(it) },
-                        label = { Text("Python 路径") },
+                        label = { Text(s.pythonPath) },
                         placeholder = { Text("/usr/bin/python3") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -67,15 +69,15 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 DependencyCard(
-                    title = "Node.js 环境",
-                    description = "配置 Node.js 路径，用于运行 npx 命令",
+                    title = s.nodeJsEnvironment,
+                    description = s.nodeJsEnvironmentDesc,
                     icon = Icons.Outlined.Javascript,
-                    status = if (nodePath.isNotEmpty()) "已配置" else "未配置"
+                    status = if (nodePath.isNotEmpty()) s.configured else s.notConfigured
                 ) {
                     OutlinedTextField(
                         value = nodePath,
                         onValueChange = { settingsStore.setNodePath(it) },
-                        label = { Text("Node.js 路径") },
+                        label = { Text(s.nodeJsPath) },
                         placeholder = { Text("/usr/bin/node") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -84,15 +86,15 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 
             item {
                 DependencyCard(
-                    title = "Ollama 本地模型",
-                    description = "配置 Ollama 服务地址，使用本地大模型",
+                    title = s.ollamaLocalModel,
+                    description = s.ollamaLocalModelDesc,
                     icon = Icons.Outlined.Computer,
-                    status = if (ollamaUrl.isNotEmpty()) "已配置" else "未配置"
+                    status = if (ollamaUrl.isNotEmpty()) s.configured else s.notConfigured
                 ) {
                     OutlinedTextField(
                         value = ollamaUrl,
                         onValueChange = { settingsStore.setOllamaUrl(it) },
-                        label = { Text("Ollama URL") },
+                        label = { Text(s.ollamaUrl) },
                         placeholder = { Text("http://localhost:11434") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -103,12 +105,12 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                     ) {
                         OutlinedButton(onClick = {},
 modifier = Modifier.techRipple(onClick = { })) {
-                            Text("测试连接")
+                            Text(s.testConnection)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         OutlinedButton(onClick = {},
 modifier = Modifier.techRipple(onClick = { })) {
-                            Text("拉取模型")
+                            Text(s.pullModel)
                         }
                     }
                 }
@@ -116,15 +118,15 @@ modifier = Modifier.techRipple(onClick = { })) {
 
             item {
                 DependencyCard(
-                    title = "LM Studio",
-                    description = "配置 LM Studio 服务地址",
+                    title = s.lmStudio,
+                    description = s.lmStudioDesc,
                     icon = Icons.Outlined.Memory,
-                    status = "未配置"
+                    status = s.notConfigured
                 ) {
                     OutlinedTextField(
                         value = "",
                         onValueChange = { },
-                        label = { Text("LM Studio URL") },
+                        label = { Text(s.lmStudioUrl) },
                         placeholder = { Text("http://localhost:1234") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -133,8 +135,8 @@ modifier = Modifier.techRipple(onClick = { })) {
 
             item {
                 DependencyCard(
-                    title = "环境依赖检查",
-                    description = "检查所有环境依赖是否满足运行要求",
+                    title = s.environmentCheck,
+                    description = s.environmentCheckDesc,
                     icon = Icons.Outlined.CheckCircle,
                     status = ""
                 ) {

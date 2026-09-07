@@ -10,7 +10,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -27,9 +29,11 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.model.DownloadState
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.LocalSuccessColor
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
@@ -47,6 +51,7 @@ fun VideoDownloadScreen(
     val uiState by viewModel.uiState.collectAsState()
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val s = appStrings()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Show error in snackbar
@@ -64,7 +69,7 @@ fun VideoDownloadScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "视频下载",
+                        text = s.videoDownloadTitle,
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -73,7 +78,7 @@ fun VideoDownloadScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "返回",
+                            contentDescription = s.back,
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -115,7 +120,7 @@ fun VideoDownloadScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "粘贴视频链接即可下载",
+                text = s.pasteVideoLinkHint,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -131,7 +136,7 @@ fun VideoDownloadScreen(
                     value = uiState.url,
                     onValueChange = viewModel::updateUrl,
                     modifier = Modifier.weight(1f),
-                    placeholder = "粘贴视频链接...",
+                    placeholder = s.urlPlaceholder,
                     singleLine = true
                 )
                 IconButton(
@@ -151,7 +156,7 @@ fun VideoDownloadScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentPaste,
-                        contentDescription = "粘贴",
+                        contentDescription = s.paste,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -160,18 +165,29 @@ fun VideoDownloadScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             TechPrimaryButton(
-                text = if (uiState.isDownloading) "取消下载" else "⬇ 下载视频",
+                text = when {
+                    uiState.isDownloading -> s.cancelDownload
+                    uiState.videoInfo != null -> {
+                        val q = uiState.selectedQuality
+                        s.downloadAction + if (q != null) " (${q.resolution ?: q.label})" else ""
+                    }
+                    else -> s.parseVideo
+                },
                 onClick = {
-                    if (uiState.isDownloading) {
-                        viewModel.cancelDownload()
-                    } else {
-                        viewModel.startDownload()
+                    when {
+                        uiState.isDownloading -> viewModel.cancelDownload()
+                        uiState.videoInfo != null -> viewModel.downloadVideo()
+                        else -> viewModel.parseVideo()
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = uiState.url.isNotEmpty() || uiState.isDownloading
+                enabled = when {
+                    uiState.isDownloading -> true
+                    uiState.downloadState == DownloadState.Parsing -> false
+                    else -> uiState.url.isNotEmpty()
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -191,7 +207,7 @@ fun VideoDownloadScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "正在解析视频...",
+                            text = s.parsingVideo,
                             color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -219,10 +235,42 @@ fun VideoDownloadScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "来源: ${info.platform}",
+                                text = String.format(s.sourceFormat, info.platform),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            // 畫質選擇（多於一檔才顯示）
+                            if (info.qualities.size > 1) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = s.videoQuality,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    info.qualities.forEach { quality ->
+                                        val isSelected = uiState.selectedQuality?.url == quality.url
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = { viewModel.selectQuality(quality) },
+                                            enabled = !uiState.isDownloading,
+                                            label = {
+                                                Text(
+                                                    text = quality.resolution ?: quality.label,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
 
                             val animatedProgress by animateFloatAsState(
                                 targetValue = uiState.downloadProgress.coerceIn(0f, 1f),
@@ -299,7 +347,7 @@ fun VideoDownloadScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "下载完成",
+                                        text = s.downloadComplete,
                                         color = LocalSuccessColor.current,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
@@ -310,18 +358,18 @@ fun VideoDownloadScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     TechSecondaryButton(
-                                        text = "📂 打开",
+                                        text = "📂 " + s.openFile,
                                         onClick = {
                                             val path = uiState.completedFilePath ?: return@TechSecondaryButton
-                                            openVideoFile(context, path)
+                                            openVideoFile(context, path, s.fileNotFound, s.noVideoPlayer)
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
                                     TechPrimaryButton(
-                                        text = "📤 分享",
+                                        text = "📤 " + s.share,
                                         onClick = {
                                             val path = uiState.completedFilePath ?: return@TechPrimaryButton
-                                            shareVideoFile(context, path, info.title)
+                                            shareVideoFile(context, path, info.title, s.fileNotFound, s.shareVideo, s.shareFailedFormat)
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
@@ -362,13 +410,13 @@ fun VideoDownloadScreen(
             ) {
                 Column {
                     Text(
-                        text = "支持平台",
+                        text = s.supportedPlatforms,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "• B站 (bilibili.com)\n• YouTube\n• 抖音\n• 快手\n• 优酷\n• 更多平台持续添加...",
+                        text = s.supportedPlatformsList,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Start
@@ -379,7 +427,7 @@ fun VideoDownloadScreen(
     }
 }
 
-private fun openVideoFile(context: android.content.Context, filePath: String) {
+private fun openVideoFile(context: android.content.Context, filePath: String, fileNotFoundText: String, noPlayerText: String) {
     try {
         // content:// URI（Android 10+ MediaStore）不需要 FileProvider，也不能用 File.exists 檢查
         val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(filePath)) {
@@ -387,7 +435,7 @@ private fun openVideoFile(context: android.content.Context, filePath: String) {
         } else {
             val file = File(filePath)
             if (!file.exists()) {
-                android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, fileNotFoundText, android.widget.Toast.LENGTH_SHORT).show()
                 return
             }
             val authority = context.packageName + ".provider"
@@ -400,11 +448,18 @@ private fun openVideoFile(context: android.content.Context, filePath: String) {
         }
         context.startActivity(intent)
     } catch (e: Exception) {
-        android.widget.Toast.makeText(context, "未找到可用的视频播放器", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(context, noPlayerText, android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 
-private fun shareVideoFile(context: android.content.Context, filePath: String, title: String) {
+private fun shareVideoFile(
+    context: android.content.Context,
+    filePath: String,
+    title: String,
+    fileNotFoundText: String,
+    shareVideoText: String,
+    shareFailedFormat: String
+) {
     try {
         // content:// URI 可直接分享，不必 FileProvider 轉換
         val uri = if (com.spcrk.app.downloader.PlaybackUri.isContentUri(filePath)) {
@@ -412,7 +467,7 @@ private fun shareVideoFile(context: android.content.Context, filePath: String, t
         } else {
             val file = File(filePath)
             if (!file.exists()) {
-                android.widget.Toast.makeText(context, "文件不存在", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, fileNotFoundText, android.widget.Toast.LENGTH_SHORT).show()
                 return
             }
             val authority = context.packageName + ".provider"
@@ -424,10 +479,10 @@ private fun shareVideoFile(context: android.content.Context, filePath: String, t
             putExtra(Intent.EXTRA_SUBJECT, title)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "分享视频").apply {
+        context.startActivity(Intent.createChooser(intent, shareVideoText).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     } catch (e: Exception) {
-        android.widget.Toast.makeText(context, "分享失败: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(context, String.format(shareFailedFormat, e.message ?: ""), android.widget.Toast.LENGTH_SHORT).show()
     }
 }

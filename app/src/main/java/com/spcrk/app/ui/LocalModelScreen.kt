@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.ai.api.EmbeddingModelInfo
 import com.spcrk.app.ai.api.LocalModelInfo
+import com.spcrk.app.ui.l10n.appStrings
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +31,7 @@ fun LocalModelScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val s = appStrings()
 
     var selectedTab by remember { mutableStateOf(0) }
     var showImportMenu by remember { mutableStateOf(false) }
@@ -44,9 +46,9 @@ fun LocalModelScreen(
             scope.launch {
                 val success = viewModel.importLocalFile(it)
                 if (success) {
-                    snackbarHostState.showSnackbar("模型导入成功")
+                    snackbarHostState.showSnackbar(s.modelImportSuccess)
                 } else {
-                    snackbarHostState.showSnackbar("模型导入失败")
+                    snackbarHostState.showSnackbar(s.modelImportFailed)
                 }
             }
         }
@@ -60,7 +62,7 @@ fun LocalModelScreen(
         scope.launch {
             val alreadyDownloaded = viewModel.isModelDownloaded(fileName)
             if (alreadyDownloaded) {
-                snackbarHostState.showSnackbar("模型已存在")
+                snackbarHostState.showSnackbar(s.modelExists)
                 return@launch
             }
             viewModel.downloadModel(
@@ -72,9 +74,9 @@ fun LocalModelScreen(
                 onComplete = { _, success ->
                     scope.launch {
                         if (success) {
-                            snackbarHostState.showSnackbar("下载完成")
+                            snackbarHostState.showSnackbar(s.downloadComplete)
                         } else {
-                            snackbarHostState.showSnackbar("下载失败")
+                            snackbarHostState.showSnackbar(s.downloadFailed)
                         }
                     }
                 }
@@ -85,10 +87,10 @@ fun LocalModelScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("本地模型管理") },
+                title = { Text(s.localModelsManagerTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -102,14 +104,14 @@ fun LocalModelScreen(
                 FloatingActionButton(
                     onClick = { showImportMenu = true }
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "添加模型")
+                    Icon(Icons.Default.Add, contentDescription = s.addModel)
                 }
                 DropdownMenu(
                     expanded = showImportMenu,
                     onDismissRequest = { showImportMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("从 Hugging Face 下载") },
+                        text = { Text(s.downloadFromHuggingFace) },
                         onClick = {
                             showImportMenu = false
                             downloadUrl = "https://huggingface.co/models?search=GGUF&sort=downloads"
@@ -119,7 +121,7 @@ fun LocalModelScreen(
                         leadingIcon = { Icon(Icons.Outlined.CloudDownload, contentDescription = null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("从 ModelScope 下载") },
+                        text = { Text(s.downloadFromModelScope) },
                         onClick = {
                             showImportMenu = false
                             downloadUrl = "https://modelscope.cn/models?search=GGUF"
@@ -129,7 +131,7 @@ fun LocalModelScreen(
                         leadingIcon = { Icon(Icons.Outlined.CloudDownload, contentDescription = null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("导入本地 GGUF") },
+                        text = { Text(s.importLocalGguf) },
                         onClick = {
                             showImportMenu = false
                             filePickerLauncher.launch("*/*")
@@ -153,19 +155,19 @@ fun LocalModelScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("嵌入模型") },
+                    text = { Text(s.embeddingModel) },
                     icon = { Icon(Icons.Outlined.Schema, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("LLM 模型") },
+                    text = { Text(s.llmModel) },
                     icon = { Icon(Icons.Outlined.Psychology, contentDescription = null) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = { Text("已下载") },
+                    text = { Text(s.downloaded) },
                     icon = { Icon(Icons.Outlined.DownloadDone, contentDescription = null) }
                 )
             }
@@ -185,7 +187,7 @@ fun LocalModelScreen(
                         val fileName = "${model.id}.gguf"
                         if (viewModel.deleteModel(fileName)) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("${model.name} 已删除")
+                                snackbarHostState.showSnackbar("${model.name} ${s.deleted}")
                             }
                         }
                     }
@@ -204,7 +206,7 @@ fun LocalModelScreen(
                         val fileName = "${model.id}.gguf"
                         if (viewModel.deleteModel(fileName)) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("${model.name} 已删除")
+                                snackbarHostState.showSnackbar("${model.name} ${s.deleted}")
                             }
                         }
                     }
@@ -215,7 +217,7 @@ fun LocalModelScreen(
                         val fileName = model.filePath.substringAfterLast("/")
                         if (viewModel.deleteModel(fileName)) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("${model.name} 已删除")
+                                snackbarHostState.showSnackbar("${model.name} ${s.deleted}")
                             }
                         }
                     }
@@ -238,11 +240,11 @@ fun LocalModelScreen(
                     onComplete = { _, success ->
                         if (success) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("下载完成")
+                                snackbarHostState.showSnackbar(s.downloadComplete)
                             }
                         } else {
                             scope.launch {
-                                snackbarHostState.showSnackbar("下载失败")
+                                snackbarHostState.showSnackbar(s.downloadFailed)
                             }
                         }
                     }
@@ -261,8 +263,9 @@ private fun EmbeddingModelTab(
     onDownload: (EmbeddingModelInfo) -> Unit,
     onDelete: (EmbeddingModelInfo) -> Unit
 ) {
+    val s = appStrings()
     if (models.isEmpty()) {
-        EmptyStateView("暂无可用的嵌入模型")
+        EmptyStateView(s.noEmbeddingModels)
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -297,8 +300,9 @@ private fun LLMModelTab(
     onDownload: (EmbeddingModelInfo) -> Unit,
     onDelete: (EmbeddingModelInfo) -> Unit
 ) {
+    val s = appStrings()
     if (models.isEmpty()) {
-        EmptyStateView("暂无可用的 LLM 模型")
+        EmptyStateView(s.noLlmModels)
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -329,8 +333,9 @@ private fun DownloadedModelTab(
     models: List<LocalModelInfo>,
     onDelete: (LocalModelInfo) -> Unit
 ) {
+    val s = appStrings()
     if (models.isEmpty()) {
-        EmptyStateView("暂无已下载的模型")
+        EmptyStateView(s.noDownloadedModels)
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -357,7 +362,7 @@ private fun DownloadedModelTab(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(model.name, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "${model.sizeMB} MB · ${if (model.type == "embedding") "嵌入模型" else "LLM"}",
+                                "${model.sizeMB} MB · ${if (model.type == "embedding") s.embeddingModel else "LLM"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -365,7 +370,7 @@ private fun DownloadedModelTab(
                         IconButton(onClick = { onDelete(model) }) {
                             Icon(
                                 Icons.Outlined.Delete,
-                                contentDescription = "删除",
+                                contentDescription = s.delete,
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -387,6 +392,7 @@ private fun ModelCard(
     onDownload: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val s = appStrings()
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -408,7 +414,7 @@ private fun ModelCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             SuggestionChip(
                                 onClick = {},
-                                label = { Text("推荐", style = MaterialTheme.typography.labelSmall) },
+                                label = { Text(s.recommended, style = MaterialTheme.typography.labelSmall) },
                                 modifier = Modifier.height(20.dp)
                             )
                         }
@@ -431,14 +437,14 @@ private fun ModelCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AssistChip(
                                 onClick = {},
-                                label = { Text("已下载", style = MaterialTheme.typography.labelSmall) },
+                                label = { Text(s.downloaded, style = MaterialTheme.typography.labelSmall) },
                                 modifier = Modifier.height(28.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             IconButton(onClick = onDelete) {
                                 Icon(
                                     Icons.Outlined.Delete,
-                                    contentDescription = "删除",
+                                    contentDescription = s.delete,
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -448,7 +454,7 @@ private fun ModelCard(
                         OutlinedButton(onClick = onDownload) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("下载")
+                            Text(s.download)
                         }
                     }
                 }
@@ -493,28 +499,29 @@ private fun UrlDownloadDialog(
 ) {
     var url by remember { mutableStateOf(initialUrl) }
     var fileName by remember { mutableStateOf("") }
+    val s = appStrings()
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("下载模型") },
+        title = { Text(s.downloadModelTitle) },
         text = {
             Column {
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("下载链接") },
+                    label = { Text(s.downloadUrlLabel) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = fileName,
                     onValueChange = { fileName = it },
-                    label = { Text("文件名 (可选)") },
+                    label = { Text(s.fileNameOptional) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "支持从 Hugging Face 或 ModelScope 下载 GGUF 格式模型",
+                    s.ggufDownloadHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -525,12 +532,12 @@ private fun UrlDownloadDialog(
                 onClick = { if (url.isNotBlank()) onConfirm(url, fileName) },
                 enabled = url.isNotBlank()
             ) {
-                Text("下载")
+                Text(s.download)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(s.cancel)
             }
         }
     )

@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.getAppContainer
 import com.spcrk.app.data.SettingsStore
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,14 +23,15 @@ fun FileProcessingSettingsScreen(
     val settingsStore = getAppContainer(LocalContext.current).settingsStore
     val ocrEngine by settingsStore.ocrEngineFlow.collectAsState(initial = "mlkit")
     val pdfRenderer by settingsStore.pdfRendererFlow.collectAsState(initial = "pdfbox")
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("文件处理") },
+                title = { Text(s.fileProcessingTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -46,28 +48,28 @@ fun FileProcessingSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SettingsSection(title = "PDF 处理", icon = Icons.Outlined.PictureAsPdf) {
+                SettingsSection(title = s.pdfProcessing, icon = Icons.Outlined.PictureAsPdf) {
                     Text(
-                        "选择 PDF 解析引擎",
+                        s.selectPdfEngine,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     RadioOption(
-                        label = "PdfBox (推荐)",
-                        description = "Apache PdfBox，解析精度高",
+                        label = s.pdfBoxRecommended,
+                        description = s.pdfBoxDesc,
                         selected = pdfRenderer == "pdfbox",
                         onSelect = { settingsStore.setPdfRenderer("pdfbox") }
                     )
                     RadioOption(
                         label = "MuPDF",
-                        description = "轻量级，解析速度快",
+                        description = s.mupdfDesc,
                         selected = pdfRenderer == "mupdf",
                         onSelect = { settingsStore.setPdfRenderer("mupdf") }
                     )
                     RadioOption(
-                        label = "系统原生",
-                        description = "使用系统内置 PDF 渲染",
+                        label = s.nativePdfRenderer,
+                        description = s.nativePdfDesc,
                         selected = pdfRenderer == "native",
                         onSelect = { settingsStore.setPdfRenderer("native") }
                     )
@@ -75,28 +77,28 @@ fun FileProcessingSettingsScreen(
             }
 
             item {
-                SettingsSection(title = "OCR 设置", icon = Icons.Outlined.DocumentScanner) {
+                SettingsSection(title = s.ocrSettings, icon = Icons.Outlined.DocumentScanner) {
                     Text(
-                        "选择 OCR 识别引擎",
+                        s.selectOcrEngine,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     RadioOption(
-                        label = "ML Kit (推荐)",
-                        description = "Google ML Kit，支持多语言",
+                        label = s.mlKitRecommended,
+                        description = s.mlKitDesc,
                         selected = ocrEngine == "mlkit",
                         onSelect = { settingsStore.setOcrEngine("mlkit") }
                     )
                     RadioOption(
                         label = "PaddleOCR",
-                        description = "百度 PaddleOCR，中文识别优秀",
+                        description = s.paddleOcrDesc,
                         selected = ocrEngine == "paddle",
                         onSelect = { settingsStore.setOcrEngine("paddle") }
                     )
                     RadioOption(
                         label = "Tesseract",
-                        description = "开源 OCR，支持 100+ 语言",
+                        description = s.tesseractDesc,
                         selected = ocrEngine == "tesseract",
                         onSelect = { settingsStore.setOcrEngine("tesseract") }
                     )
@@ -104,22 +106,22 @@ fun FileProcessingSettingsScreen(
             }
 
             item {
-                SettingsSection(title = "文档解析", icon = Icons.Outlined.Description) {
+                SettingsSection(title = s.documentParsing, icon = Icons.Outlined.Description) {
                     SwitchSettingRow(
-                        title = "自动分块",
-                        description = "长文档自动分块处理",
+                        title = s.autoChunking,
+                        description = s.autoChunkingDesc,
                         checked = true,
                         onCheckedChange = { }
                     )
                     SwitchSettingRow(
-                        title = "提取图片",
-                        description = "从文档中提取嵌入的图片",
+                        title = s.extractImages,
+                        description = s.extractImagesDesc,
                         checked = true,
                         onCheckedChange = { }
                     )
                     SwitchSettingRow(
-                        title = "保留格式",
-                        description = "保留原始文档格式信息",
+                        title = s.preserveFormat,
+                        description = s.preserveFormatDesc,
                         checked = false,
                         onCheckedChange = { }
                     )
@@ -127,16 +129,16 @@ fun FileProcessingSettingsScreen(
             }
 
             item {
-                SettingsSection(title = "文件限制", icon = Icons.Outlined.DataUsage) {
+                SettingsSection(title = s.fileLimits, icon = Icons.Outlined.DataUsage) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("最大文件大小", style = MaterialTheme.typography.bodyMedium)
+                            Text(s.maxFileSize, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "单个文件上传限制",
+                                s.maxFileSizeDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -150,9 +152,9 @@ fun FileProcessingSettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("最大文件数", style = MaterialTheme.typography.bodyMedium)
+                            Text(s.maxFileCount, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "单次上传文件数量",
+                                s.maxFileCountDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )

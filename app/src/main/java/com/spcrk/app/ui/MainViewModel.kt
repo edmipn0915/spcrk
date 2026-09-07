@@ -10,6 +10,7 @@ import com.spcrk.app.data.DownloadHistory
 import com.spcrk.app.downloader.VideoDownloader
 import com.spcrk.app.model.DownloadState
 import com.spcrk.app.model.VideoInfo
+import com.spcrk.app.model.VideoQuality
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,7 @@ data class MainUiState(
     val url: String = "",
     val isDownloading: Boolean = false,
     val videoInfo: VideoInfo? = null,
+    val selectedQuality: VideoQuality? = null,
     val downloadProgress: Float = 0f,
     val errorMessage: String? = null,
     val downloadState: DownloadState = DownloadState.Idle,
@@ -39,38 +41,117 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     private val container: AppContainer = getAppContainer(app)
     private val videoDownloader = container.videoDownloader
     private val repository = container.repository
+    private var parseJob: Job? = null
     private var downloadJob: Job? = null
 
     private var lastProgressTime = 0L
     private var lastProgressBytes = 0L
 
     fun updateUrl(url: String) {
-        _uiState.value = _uiState.value.copy(
-            url = url,
-            errorMessage = null
-        )
+        val prev = _uiState.value
+        val urlChanged = url.trim() != prev.url.trim() && prev.videoInfo != null
+        _uiState.value = if (urlChanged && !prev.isDownloading) {
+            prev.copy(
+                url = url,
+                videoInfo = null,
+                selectedQuality = null,
+                errorMessage = null,
+                downloadProgress = 0f,
+                downloadState = DownloadState.Idle,
+                downloadSpeed = "",
+                downloadedSize = "",
+                totalSize = "",
+                completedFilePath = null,
+                completedFileSize = 0L
+            )
+        } else {
+            prev.copy(url = url, errorMessage = null)
+        }
     }
 
-    fun startDownload() {
-        var url = _uiState.value.url.trim()
-        
-        // Auto-prepend https:// if missing
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            url = "https://$url"
-        }
-        
+    /** 第一階段：只解析影片資訊與可用畫質，不下載。 */
+    fun parseVideo() {
+        val url = normalizeUrl(_uiState.value.url)
+
         if (url.isEmpty()) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "请输入视频链接"
-            )
+            _uiState.value = _uiState.value.copy(errorMessage = "请输入视频链接")
+            return
+        }
+        if (!isValidUrl(url)) {
+            _uiState.value = _uiState.value.copy(errorMessage = "请输入有效的视频链接")
             return
         }
 
-        if (!isValidUrl(url)) {
+        parseJob?.cancel()
+        parseJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "请输入有效的视频链接"
+                isDownloading = false,
+                errorMessage = null,
+                downloadProgress = 0f,
+                downloadState = DownloadState.Parsing,
+                downloadSpeed = "",
+                downloadedSize = "",
+                totalSize = "",
+                completedFilePath = null,
+                completedFileSize = 0L,
+                videoInfo = null,
+                selectedQuality = null
             )
+
+            try {
+                Log.d("VideoDownloader", "开始解析URL: $url")
+
+                val videoInfo = videoDownloader.parseVideoUrl(url)
+                Log.d("VideoDownloader", "解析结果: ${videoInfo.title}, 画质数: ${videoInfo.qualities.size}")
+
+                if (videoInfo.videoUrl.isNullOrEmpty()) {
+                    Log.e("VideoDownloader", "无法获取视频下载地址")
+                    _uiState.value = _uiState.value.copy(
+                        downloadState = DownloadState.Error("无法获取视频下载地址"),
+                        errorMessage = "无法获取视频下载地址，该视频可能需要特殊处理或尝试其他视频"
+                    )
+                    return@launch
+                }
+
+                // 預設選取最高畫質
+                val defaultQuality = videoInfo.qualities.maxByOrNull { resolutionPixels(it.resolution) }
+                    ?: VideoQuality("默认", videoInfo.videoUrl)
+
+                _uiState.value = _uiState.value.copy(
+                    videoInfo = videoInfo,
+                    selectedQuality = defaultQuality,
+                    downloadState = DownloadState.Idle
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("VideoDownloader", "解析错误", e)
+                _uiState.value = _uiState.value.copy(
+                    downloadState = DownloadState.Error(e.message ?: "下载失败，请重试"),
+                    errorMessage = "错误: ${e.message ?: "未知错误"}"
+                )
+            }
+        }
+    }
+
+    /** 第二階段：以所選畫質實際下載（已解析後才可呼叫）。 */
+    fun downloadVideo() {
+        val state = _uiState.value
+        val info = state.videoInfo
+        if (info == null) {
+            _uiState.value = _uiState.value.copy(errorMessage = "请先解析视频")
             return
+        }
+        if (info.videoUrl.isNullOrEmpty()) {
+            _uiState.value = _uiState.value.copy(errorMessage = "无法获取视频下载地址，请重新解析")
+            return
+        }
+
+        val selectedUrl = state.selectedQuality?.url?.takeIf { it.isNotBlank() }
+        val target = if (selectedUrl != null && selectedUrl != info.videoUrl) {
+            info.copy(videoUrl = selectedUrl)
+        } else {
+            info
         }
 
         downloadJob?.cancel()
@@ -79,7 +160,7 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
                 isDownloading = true,
                 errorMessage = null,
                 downloadProgress = 0f,
-                downloadState = DownloadState.Parsing,
+                downloadState = DownloadState.Downloading,
                 downloadSpeed = "",
                 downloadedSize = "",
                 totalSize = "",
@@ -91,38 +172,12 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
             lastProgressBytes = 0L
 
             try {
-                Log.d("VideoDownloader", "开始解析URL: $url")
-
-                // Parse video info
-                _uiState.value = _uiState.value.copy(
-                    downloadState = DownloadState.Parsing
-                )
-
-                val videoInfo = videoDownloader.parseVideoUrl(url)
-                Log.d("VideoDownloader", "解析结果: ${videoInfo.title}, URL: ${videoInfo.videoUrl}")
-
-                // Check if video URL is available
-                if (videoInfo.videoUrl.isNullOrEmpty()) {
-                    Log.e("VideoDownloader", "无法获取视频下载地址")
-                    _uiState.value = _uiState.value.copy(
-                        isDownloading = false,
-                        downloadState = DownloadState.Error("无法获取视频下载地址"),
-                        errorMessage = "无法获取视频下载地址，该视频可能需要特殊处理或尝试其他视频"
-                    )
-                    return@launch
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    videoInfo = videoInfo,
-                    downloadState = DownloadState.Downloading
-                )
-
-                Log.d("VideoDownloader", "开始下载: ${videoInfo.videoUrl}")
+                Log.d("VideoDownloader", "开始下载: ${target.videoUrl}")
 
                 // Start download
                 videoDownloader.downloadVideo(
                     context = getApplication(),
-                    videoInfo = videoInfo,
+                    videoInfo = target,
                     onProgress = { downloadedBytes, totalBytes ->
                         val currentTime = System.currentTimeMillis()
                         val elapsed = currentTime - lastProgressTime
@@ -171,12 +226,12 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
                             if (f.exists()) f.length() else 0L
                         }
                         val history = DownloadHistory(
-                            title = videoInfo.title,
-                            platform = videoInfo.platform,
+                            title = target.title,
+                            platform = target.platform,
                             filePath = filePath,
                             fileSize = fileSize,
                             downloadTime = System.currentTimeMillis(),
-                            videoUrl = videoInfo.url
+                            videoUrl = target.url
                         )
                         viewModelScope.launch {
                             repository.addHistory(history)
@@ -202,8 +257,10 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
                         )
                     }
                 )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                Log.e("VideoDownloader", "解析错误", e)
+                Log.e("VideoDownloader", "下载异常", e)
                 _uiState.value = _uiState.value.copy(
                     isDownloading = false,
                     downloadState = DownloadState.Error(e.message ?: "下载失败，请重试"),
@@ -214,7 +271,28 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 使用者選擇畫質（下載中不允許切換）。 */
+    fun selectQuality(quality: VideoQuality) {
+        if (_uiState.value.isDownloading) return
+        _uiState.value = _uiState.value.copy(
+            selectedQuality = quality,
+            errorMessage = null,
+            downloadProgress = 0f,
+            completedFilePath = null,
+            completedFileSize = 0L
+        )
+    }
+
+    private fun normalizeUrl(raw: String): String {
+        var url = raw.trim()
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "https://$url"
+        }
+        return url
+    }
+
     fun cancelDownload() {
+        parseJob?.cancel()
         downloadJob?.cancel()
         _uiState.value = _uiState.value.copy(
             isDownloading = false,
@@ -223,6 +301,13 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
             downloadedSize = "",
             totalSize = ""
         )
+    }
+
+    /** 依 resolution（如 "1080P"、"4K"）估算代表高度，作為預設最高畫質排序依據。 */
+    private fun resolutionPixels(resolution: String?): Int {
+        if (resolution.isNullOrBlank()) return 0
+        val n = Regex("\\d+").find(resolution)?.value?.toIntOrNull() ?: return 0
+        return if (resolution.contains("K", ignoreCase = true)) n * 1000 else n
     }
 
     private fun isValidUrl(url: String): Boolean {
@@ -269,6 +354,7 @@ class MainViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun resetState() {
+        parseJob?.cancel()
         downloadJob?.cancel()
         _uiState.value = MainUiState()
     }

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.ScheduledTask
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,14 +27,15 @@ fun ScheduleScreen(
     viewModel: ScheduleViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("定时任务") },
+                title = { Text(s.schedulesTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -45,7 +47,7 @@ fun ScheduleScreen(
             FloatingActionButton(
                 onClick = { viewModel.showCreateDialog() }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "新建任务")
+                Icon(Icons.Default.Add, contentDescription = s.create)
             }
         }
     ) { padding ->
@@ -76,12 +78,12 @@ fun ScheduleScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "暂无定时任务",
+                        text = s.noScheduledTasks,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "点击右下角按钮创建新任务",
+                        text = s.createTaskHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -140,6 +142,7 @@ private fun TaskCard(
     onDelete: () -> Unit
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -186,7 +189,7 @@ private fun TaskCard(
             ) {
                 Column {
                     Text(
-                        text = "下次执行",
+                        text = s.nextRunTimeLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -200,14 +203,14 @@ private fun TaskCard(
                     IconButton(onClick = onEdit) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "编辑",
+                            contentDescription = s.edit,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = { showDeleteConfirm = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "删除",
+                            contentDescription = s.delete,
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
@@ -219,8 +222,8 @@ private fun TaskCard(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("删除任务") },
-            text = { Text("确定要删除任务「${task.name}」吗？") },
+            title = { Text(s.deleteTaskTitle) },
+            text = { Text(String.format(s.deleteTaskMessage, task.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -228,12 +231,12 @@ private fun TaskCard(
                         onDelete()
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(s.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("取消")
+                    Text(s.cancel)
                 }
             }
         )
@@ -262,11 +265,12 @@ private fun TaskDialog(
     } else {
         viewModel.presetToCronExpression(selectedPreset)
     }
+    val s = appStrings()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (task == null) "新建任务" else "编辑任务")
+            Text(if (task == null) s.newTaskTitle else s.editTaskTitle)
         },
         text = {
             Column(
@@ -275,40 +279,40 @@ private fun TaskDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("任务名称") },
+                    label = { Text(s.taskNameLabel) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(
-                    text = "执行频率",
+                    text = s.executionFrequencyLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Column {
                     PresetChip(
-                        label = "每分钟",
+                        label = s.everyMinute,
                         isSelected = selectedPreset == SchedulePreset.EVERY_MINUTE,
                         onClick = { selectedPreset = SchedulePreset.EVERY_MINUTE }
                     )
                     PresetChip(
-                        label = "每5分钟",
+                        label = s.everyFiveMinutes,
                         isSelected = selectedPreset == SchedulePreset.EVERY_5_MINUTES,
                         onClick = { selectedPreset = SchedulePreset.EVERY_5_MINUTES }
                     )
                     PresetChip(
-                        label = "每15分钟",
+                        label = s.everyFifteenMinutes,
                         isSelected = selectedPreset == SchedulePreset.EVERY_15_MINUTES,
                         onClick = { selectedPreset = SchedulePreset.EVERY_15_MINUTES }
                     )
                     PresetChip(
-                        label = "每小时",
+                        label = s.everyHour,
                         isSelected = selectedPreset == SchedulePreset.EVERY_HOUR,
                         onClick = { selectedPreset = SchedulePreset.EVERY_HOUR }
                     )
                     PresetChip(
-                        label = "每天 (9:00)",
+                        label = s.everyDayPreset,
                         isSelected = selectedPreset == SchedulePreset.EVERY_DAILY,
                         onClick = { selectedPreset = SchedulePreset.EVERY_DAILY }
                     )
@@ -318,14 +322,14 @@ private fun TaskDialog(
                     OutlinedTextField(
                         value = customCron,
                         onValueChange = { customCron = it },
-                        label = { Text("Cron 表达式") },
+                        label = { Text(s.cronExpressionLabel) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 Text(
-                    text = "Cron: $cronExpression",
+                    text = String.format(s.cronFormat, cronExpression),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -333,7 +337,7 @@ private fun TaskDialog(
                 OutlinedTextField(
                     value = action,
                     onValueChange = { action = it },
-                    label = { Text("动作类型") },
+                    label = { Text(s.actionTypeLabel) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -341,7 +345,7 @@ private fun TaskDialog(
                 OutlinedTextField(
                     value = actionParams,
                     onValueChange = { actionParams = it },
-                    label = { Text("动作参数") },
+                    label = { Text(s.actionParamsLabel) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -356,12 +360,12 @@ private fun TaskDialog(
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text("确定")
+                Text(s.confirm)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(s.cancel)
             }
         }
     )

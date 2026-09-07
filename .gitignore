@@ -23,3 +23,16 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Dev/QA temporary artifacts (do NOT upload)
+/.tmp_*
+/.qa_*
+/qa_*.xml
+/qa_*.png
+/qa_*.json
+/qa_*.txt
+/qa_*.bin
+/shot_home.png
+/compile_log.txt
+/.trae/
+/tmp_*

@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.spcrk.app.ui.l10n.appStrings
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,7 @@ import com.spcrk.app.ai.AgentStepStatus
 import com.spcrk.app.ai.Message
 import com.spcrk.app.ai.McpToolCallInfo
 import com.spcrk.app.ai.ConversationSummary
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.LocalSuccessColor
 import com.spcrk.app.ui.theme.TechTextField
 import com.spcrk.app.ui.theme.glass
@@ -67,6 +69,7 @@ fun ChatScreen(
     onBackClick: () -> Unit = {},
     viewModel: ChatViewModel = viewModel()
 ) {
+    val s = appStrings()
     val uiState by viewModel.uiState.collectAsState()
     var showModelSelector by remember { mutableStateOf(false) }
     var showSkillSelector by remember { mutableStateOf(false) }
@@ -105,7 +108,7 @@ fun ChatScreen(
                         IconButton(onClick = { showDrawer = true }) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
-                                contentDescription = "对话历史",
+                                contentDescription = s.chatHistory,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -113,7 +116,7 @@ fun ChatScreen(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = uiState.currentModel.ifEmpty { "AI 聊天" },
+                                text = uiState.currentModel.ifEmpty { s.chatDefaultTitle },
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
@@ -121,7 +124,7 @@ fun ChatScreen(
                                 IconButton(onClick = { showModelSelector = true }) {
                                     Icon(
                                         imageVector = Icons.Default.ArrowDropDown,
-                                        contentDescription = "选择模型",
+                                        contentDescription = s.selectModel,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -132,7 +135,7 @@ fun ChatScreen(
                                     val options = viewModel.getAvailableModels()
                                     if (options.isEmpty()) {
                                         DropdownMenuItem(
-                                            text = { Text("未配置模型，请到设置中添加", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            text = { Text(s.noModelConfigured, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                                             onClick = { showModelSelector = false }
                                         )
                                     } else {
@@ -218,7 +221,7 @@ fun ChatScreen(
                             ) {
                                 Icon(
                                     imageVector = if (uiState.enableSearch) Icons.Outlined.Search else Icons.Outlined.SearchOff,
-                                    contentDescription = "搜索增强",
+                                    contentDescription = s.toggleSearchDesc,
                                     tint = if (uiState.enableSearch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -230,7 +233,7 @@ fun ChatScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Description,
-                                    contentDescription = "上传文档",
+                                    contentDescription = s.uploadDocument,
                                     tint = if (uiState.attachedDocument != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -242,7 +245,7 @@ fun ChatScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Image,
-                                    contentDescription = "上传图片",
+                                    contentDescription = s.uploadImage,
                                     tint = if (uiState.attachedImageUri != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -278,7 +281,7 @@ fun ChatScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.MenuBook,
-                                    contentDescription = "知识库",
+                                    contentDescription = s.knowledge,
                                     tint = if (uiState.enableKnowledge) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -295,7 +298,7 @@ fun ChatScreen(
                                 value = uiState.currentInput,
                                 onValueChange = { viewModel.updateInput(it) },
                                 modifier = Modifier.weight(1f),
-                                placeholder = "输入消息...",
+                                placeholder = s.inputPlaceholder,
                                 enabled = !uiState.isSending,
                                 singleLine = true
                             )
@@ -317,7 +320,7 @@ fun ChatScreen(
                             ) {
                                 Icon(
                                     imageVector = if (uiState.isSending) Icons.Outlined.Close else Icons.Default.Send,
-                                    contentDescription = if (uiState.isSending) "取消" else "发送",
+                                    contentDescription = if (uiState.isSending) s.cancel else s.send,
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
@@ -370,12 +373,12 @@ fun ChatScreen(
                             IconButton(onClick = onBackClick) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "返回",
+                                    contentDescription = s.back,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Text(
-                                "返回",
+                                s.back,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
@@ -393,13 +396,13 @@ fun ChatScreen(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("新建对话")
+                            Text(s.newChat)
                         }
 
                         Divider(modifier = Modifier.padding(vertical = 4.dp))
 
                         Text(
-                            "对话历史",
+                            s.chatHistory,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -437,19 +440,19 @@ fun ChatScreen(
         showDeleteConversationDialog?.let { convId ->
             AlertDialog(
                 onDismissRequest = { showDeleteConversationDialog = null },
-                title = { Text("删除对话") },
-                text = { Text("确定要删除这条对话吗？此操作不可撤销。") },
+                title = { Text(s.deleteChat) },
+                text = { Text(s.deleteChatMessage) },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.deleteConversation(convId)
                         showDeleteConversationDialog = null
                     }) {
-                        Text("删除", color = MaterialTheme.colorScheme.error)
+                        Text(s.delete, color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteConversationDialog = null }) {
-                        Text("取消")
+                        Text(s.cancel)
                     }
                 }
             )
@@ -464,6 +467,7 @@ private fun ConversationHistoryItem(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val s = appStrings()
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -495,7 +499,7 @@ private fun ConversationHistoryItem(
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = s.delete,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
@@ -519,6 +523,7 @@ private fun AttachmentStatusBar(
     attachedImageUri: String?,
     onClearAttachments: () -> Unit
 ) {
+    val s = appStrings()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -530,7 +535,7 @@ private fun AttachmentStatusBar(
         if (enableSearch) {
             SuggestionChip(
                 onClick = { },
-                label = { Text("搜索", fontSize = 11.sp) },
+                label = { Text(s.aiHubSearch, fontSize = 11.sp) },
                 icon = {
                     Icon(
                         Icons.Outlined.Search,
@@ -566,7 +571,7 @@ private fun AttachmentStatusBar(
         if (enableKnowledge) {
             SuggestionChip(
                 onClick = { },
-                label = { Text("知识库", fontSize = 11.sp) },
+                label = { Text(s.knowledge, fontSize = 11.sp) },
                 icon = {
                     Icon(
                         Icons.Outlined.MenuBook,
@@ -584,7 +589,7 @@ private fun AttachmentStatusBar(
         if (attachedDocument != null) {
             SuggestionChip(
                 onClick = { },
-                label = { Text("文档已附加", fontSize = 11.sp) },
+                label = { Text(s.docAttached, fontSize = 11.sp) },
                 icon = {
                     Icon(
                         Icons.Outlined.Description,
@@ -602,7 +607,7 @@ private fun AttachmentStatusBar(
         if (attachedImageUri != null) {
             SuggestionChip(
                 onClick = { },
-                label = { Text("图片已附加", fontSize = 11.sp) },
+                label = { Text(s.imageAttached, fontSize = 11.sp) },
                 icon = {
                     Icon(
                         Icons.Outlined.Image,
@@ -625,7 +630,7 @@ private fun AttachmentStatusBar(
         ) {
             Icon(
                 Icons.Outlined.Close,
-                contentDescription = "清除附件",
+                contentDescription = s.clearAttachments,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp)
             )
@@ -639,6 +644,7 @@ private fun SkillSelectorPanel(
     onSkillSelected: (String) -> Unit
 ) {
     val skills by skillDisplayItems.collectAsState(initial = emptyList())
+    val s = appStrings()
 
     Column(
         modifier = Modifier
@@ -646,7 +652,7 @@ private fun SkillSelectorPanel(
             .padding(16.dp)
     ) {
         Text(
-            text = "选择 Skill",
+            text = s.selectSkill,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 12.dp)
@@ -654,7 +660,7 @@ private fun SkillSelectorPanel(
 
         if (skills.isEmpty()) {
             Text(
-                text = "暂无已安装的 Skill",
+                text = s.noSkillsInstalled,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 16.dp)
@@ -715,6 +721,7 @@ private fun MessageBubble(
     onToggleSearchCitations: (Long) -> Unit = {},
     isSearchCitationsExpanded: Boolean = false
 ) {
+    val s = appStrings()
     val isUser = message.role == "user"
 
     Column(
@@ -808,7 +815,7 @@ private fun MessageBubble(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${message.searchResults.size} 个搜索来源",
+                                text = java.lang.String.format(s.searchSourcesCount, message.searchResults.size),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -827,7 +834,7 @@ private fun MessageBubble(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "我",
+                        text = s.myAvatar,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1073,6 +1080,7 @@ private fun McpToolCallIndicator(toolCall: McpToolCallInfo) {
                     modifier = Modifier.weight(1f)
                 )
 
+                val s = appStrings()
                 when (toolCall.status) {
                     "calling" -> {
                         CircularProgressIndicator(
@@ -1084,7 +1092,7 @@ private fun McpToolCallIndicator(toolCall: McpToolCallInfo) {
                     "completed" -> {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "完成",
+                            contentDescription = s.done,
                             tint = LocalSuccessColor.current,
                             modifier = Modifier.size(12.dp)
                         )
@@ -1092,7 +1100,7 @@ private fun McpToolCallIndicator(toolCall: McpToolCallInfo) {
                     "error" -> {
                         Icon(
                             imageVector = Icons.Default.Error,
-                            contentDescription = "错误",
+                            contentDescription = s.error,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(12.dp)
                         )
@@ -1127,6 +1135,7 @@ private fun AgentStepsPanel(steps: List<AgentStep>) {
 
 @Composable
 private fun AgentStepItem(step: AgentStep) {
+    val s = appStrings()
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -1179,7 +1188,7 @@ private fun AgentStepItem(step: AgentStep) {
                     AgentStepStatus.COMPLETED -> {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "完成",
+                            contentDescription = s.done,
                             tint = LocalSuccessColor.current,
                             modifier = Modifier.size(14.dp)
                         )
@@ -1187,7 +1196,7 @@ private fun AgentStepItem(step: AgentStep) {
                     AgentStepStatus.ERROR -> {
                         Icon(
                             imageVector = Icons.Default.Error,
-                            contentDescription = "错误",
+                            contentDescription = s.error,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(14.dp)
                         )

@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.data
+package com.spcrk.app.data
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -15,7 +15,7 @@ class SettingsStore private constructor() {
     private val _fontSizeFlow = MutableStateFlow(14)
     val fontSizeFlow: StateFlow<Int> = _fontSizeFlow.asStateFlow()
 
-    private val _languageFlow = MutableStateFlow("zh")
+    private val _languageFlow = MutableStateFlow(systemDefaultLanguage())
     val languageFlow: StateFlow<String> = _languageFlow.asStateFlow()
 
     private val _zoomFactorFlow = MutableStateFlow(1.0f)
@@ -93,12 +93,24 @@ class SettingsStore private constructor() {
     private val _urlContentProviderFlow = MutableStateFlow("builtin")
     val urlContentProviderFlow: StateFlow<String> = _urlContentProviderFlow.asStateFlow()
 
+    private fun systemDefaultLanguage(): String {
+        val tag = java.util.Locale.getDefault().toLanguageTag()
+        return when {
+            tag.startsWith("zh") && (tag.contains("TW") || tag.contains("Hant")) -> "zh-TW"
+            tag.startsWith("zh") -> "zh"
+            tag.startsWith("en") -> "en"
+            tag.startsWith("ja") -> "ja"
+            else -> "zh"
+        }
+    }
+
     fun init(context: Context) {
         prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         prefs?.let { p ->
             _themeModeFlow.value = p.getString("theme_mode", "system") ?: "system"
             _fontSizeFlow.value = p.getInt("font_size", 14)
-            _languageFlow.value = p.getString("language", "zh") ?: "zh"
+            val savedLanguage = p.getString("language", null)
+            _languageFlow.value = if (savedLanguage.isNullOrBlank()) systemDefaultLanguage() else savedLanguage
             _zoomFactorFlow.value = p.getFloat("zoom_factor", 1.0f)
             _selectedColorFlow.value = p.getLong("selected_color", 0xFF00BCD4)
             _showColorPicker.value = p.getBoolean("show_color_picker", false)

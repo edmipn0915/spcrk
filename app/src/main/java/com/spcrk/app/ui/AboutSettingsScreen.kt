@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.techRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,15 +28,16 @@ fun AboutSettingsScreen(
             null
         }
     }
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("关于") },
+                title = { Text(s.aboutTitle) },
                 navigationIcon = {
                     IconButton(onClick = {},
 modifier = Modifier.techRipple(onClick = onBackClick)) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -60,7 +62,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "版本 ${packageInfo?.versionName ?: "1.0.0"}",
+                    text = String.format(s.aboutVersionFormat, packageInfo?.versionName ?: "1.0.0"),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -79,13 +81,13 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "一个功能强大的 AI 助手应用",
+                            text = s.aboutTagline,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "支持多模型对话、知识管理、文档处理、MCP 集成等功能",
+                            text = s.aboutFeatures,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -104,17 +106,17 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "应用信息",
+                            s.appInfoTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        InfoRow("应用名称", "SPCRK")
-                        InfoRow("版本号", packageInfo?.versionName ?: "1.0.0")
-                        InfoRow("包名", context.packageName)
-                        InfoRow("构建时间", "2026-08-11")
-                        InfoRow("系统版本", "Android ${android.os.Build.VERSION.RELEASE}")
-                        InfoRow("设备型号", "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+                        InfoRow(s.appNameLabel, "SPCRK")
+                        InfoRow(s.versionLabel, packageInfo?.versionName ?: "1.0.0")
+                        InfoRow(s.packageNameLabel, context.packageName)
+                        InfoRow(s.buildTimeLabel, "2026-08-11")
+                        InfoRow(s.systemVersionLabel, "Android ${android.os.Build.VERSION.RELEASE}")
+                        InfoRow(s.deviceModelLabel, "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
                     }
                 }
             }
@@ -129,17 +131,17 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "技术栈",
+                            s.techStackTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        InfoRow("开发语言", "Kotlin")
-                        InfoRow("UI 框架", "Jetpack Compose")
-                        InfoRow("数据库", "Room Database")
-                        InfoRow("网络库", "Ktor / OkHttp")
-                        InfoRow("最低 SDK", "Android 8.0 (API 26)")
-                        InfoRow("目标 SDK", "Android 14 (API 34)")
+                        InfoRow(s.devLanguageLabel, "Kotlin")
+                        InfoRow(s.uiFrameworkLabel, "Jetpack Compose")
+                        InfoRow(s.databaseLabel, "Room Database")
+                        InfoRow(s.networkLibraryLabel, "Ktor / OkHttp")
+                        InfoRow(s.minSdkLabel, "Android 8.0 (API 26)")
+                        InfoRow(s.targetSdkLabel, "Android 14 (API 34)")
                     }
                 }
             }
@@ -154,7 +156,7 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "操作",
+                            s.actionsTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -163,21 +165,21 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
 modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
                             Icon(Icons.Outlined.SystemUpdate, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("检查更新")
+                            Text(s.checkUpdate)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedButton(onClick = {},
 modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
                             Icon(Icons.Outlined.BugReport, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("导出诊断包")
+                            Text(s.exportDiagnostics)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedButton(onClick = {},
 modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
                             Icon(Icons.Outlined.Feedback, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("意见反馈")
+                            Text(s.feedback)
                         }
                     }
                 }
@@ -193,15 +195,15 @@ modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            "相关链接",
+                            s.relatedLinksTitle,
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LinkRow("GitHub", "https://github.com/example/spcrk")
-                        LinkRow("官方文档", "https://docs.example.com")
-                        LinkRow("隐私政策", "https://example.com/privacy")
-                        LinkRow("用户协议", "https://example.com/terms")
+                        LinkRow(s.officialDocsLabel, "https://docs.example.com")
+                        LinkRow(s.privacyPolicyLabel, "https://example.com/privacy")
+                        LinkRow(s.termsOfServiceLabel, "https://example.com/terms")
                     }
                 }
             }
@@ -209,7 +211,7 @@ modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(
-                    text = "基于 Kotlin + Jetpack Compose 构建",
+                    text = s.builtWithLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )

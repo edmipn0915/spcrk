@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.McpServer
 import com.spcrk.app.ai.api.McpConnectionState
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.navigation.Screen
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -32,6 +33,7 @@ fun McpManageScreen(
     viewModel: McpManageViewModel = viewModel(factory = McpManageViewModelFactory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val scope = rememberCoroutineScope()
+    val s = appStrings()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showToolTestDialog by remember { mutableStateOf(false) }
@@ -44,17 +46,17 @@ fun McpManageScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MCP 管理") },
+                title = { Text(s.mcpManageTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "添加服务器")
+                Icon(Icons.Default.Add, contentDescription = s.addServer)
             }
         }
     ) { padding ->
@@ -74,13 +76,13 @@ fun McpManageScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "暂无 MCP 服务器",
+                        text = s.noMcpServers,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "点击右下角按钮添加服务器",
+                        text = s.addMcpServerHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
@@ -141,6 +143,7 @@ fun McpServerItem(
     onReconnect: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -200,21 +203,21 @@ fun McpServerItem(
                 IconButton(onClick = onReconnect) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "重连",
+                        contentDescription = s.reconnect,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onTest) {
                     Icon(
                         Icons.Default.PlayArrow,
-                        contentDescription = "测试",
+                        contentDescription = s.test,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = { showDeleteDialog = true }) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "删除",
+                        contentDescription = s.delete,
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -225,8 +228,8 @@ fun McpServerItem(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("删除服务器") },
-            text = { Text("确定要删除「${server.name}」吗？") },
+            title = { Text(s.deleteServerTitle) },
+            text = { Text(String.format(s.deleteServerConfirm, server.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -234,12 +237,12 @@ fun McpServerItem(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(s.delete, color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(s.cancel)
                 }
             }
         )
@@ -248,12 +251,13 @@ fun McpServerItem(
 
 @Composable
 fun ConnectionStateIndicator(state: McpConnectionState) {
+    val s = appStrings()
     val (color, text) = when (state) {
-        McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary to "已连接"
-        McpConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary to "连接中"
-        McpConnectionState.ERROR -> MaterialTheme.colorScheme.error to "错误"
-        McpConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) to "未连接"
-        else -> MaterialTheme.colorScheme.onSurfaceVariant to "未知"
+        McpConnectionState.CONNECTED -> MaterialTheme.colorScheme.primary to s.connected
+        McpConnectionState.CONNECTING -> MaterialTheme.colorScheme.tertiary to s.connecting
+        McpConnectionState.ERROR -> MaterialTheme.colorScheme.error to s.error
+        McpConnectionState.DISCONNECTED -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) to s.disconnected
+        else -> MaterialTheme.colorScheme.onSurfaceVariant to s.unknown
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -284,8 +288,9 @@ fun AddMcpServerDialog(
     onDismiss: () -> Unit,
     onAdd: (McpServer) -> Unit
 ) {
+    val s = appStrings()
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("快速添加", "JSON 导入", "DXT 包导入", "mcpb 包导入")
+    val tabs = listOf(s.quickAdd, s.jsonImport, s.dxtImport, s.mcpbImport)
 
     var name by remember { mutableStateOf("") }
     var connectionType by remember { mutableStateOf("stdio") }
@@ -320,11 +325,11 @@ fun AddMcpServerDialog(
                     dxtFileName = tempFile.name
                     errorMessage = ""
                 } else {
-                    errorMessage = "DXT 文件解析失败"
+                    errorMessage = s.dxtParseFailed
                 }
                 tempFile.delete()
             } catch (e: Exception) {
-                errorMessage = "文件读取失败: ${e.message}"
+                errorMessage = String.format(s.fileReadFailed, e.message)
             }
         }
     }
@@ -347,18 +352,18 @@ fun AddMcpServerDialog(
                     mcpbFileName = tempFile.name
                     errorMessage = ""
                 } else {
-                    errorMessage = "mcpb 文件解析失败"
+                    errorMessage = s.mcpbParseFailed
                 }
                 tempFile.delete()
             } catch (e: Exception) {
-                errorMessage = "文件读取失败: ${e.message}"
+                errorMessage = String.format(s.fileReadFailed, e.message)
             }
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加 MCP 服务器") },
+        title = { Text(s.addMcpServer) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 TabRow(selectedTabIndex = selectedTab) {
@@ -400,7 +405,7 @@ fun AddMcpServerDialog(
                                 onAdd(server)
                                 errorMessage = ""
                             } else {
-                                errorMessage = "JSON 解析失败"
+                                errorMessage = s.jsonParseFailed
                             }
                         }
                     )
@@ -466,12 +471,12 @@ fun AddMcpServerDialog(
                     else -> false
                 }
             ) {
-                Text("添加")
+                Text(s.add)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(s.cancel)
             }
         }
     )
@@ -493,13 +498,14 @@ fun QuickAddTab(
     onHeadersChange: (String) -> Unit
 ) {
     var typeExpanded by remember { mutableStateOf(false) }
+    val s = appStrings()
     val connectionTypes = listOf("stdio", "sse", "streamablehttp")
 
     Column {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("服务器名称") },
+            label = { Text(s.serverName) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -513,7 +519,7 @@ fun QuickAddTab(
                 value = connectionType.uppercase(),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("连接方式") },
+                label = { Text(s.connectionMethod) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor()
             )
@@ -540,7 +546,7 @@ fun QuickAddTab(
                 OutlinedTextField(
                     value = command,
                     onValueChange = onCommandChange,
-                    label = { Text("命令 (uvx/npx)") },
+                    label = { Text(s.command) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -548,7 +554,7 @@ fun QuickAddTab(
                 OutlinedTextField(
                     value = args,
                     onValueChange = onArgsChange,
-                    label = { Text("参数") },
+                    label = { Text(s.arguments) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -557,7 +563,7 @@ fun QuickAddTab(
                 OutlinedTextField(
                     value = url,
                     onValueChange = onUrlChange,
-                    label = { Text("服务器 URL") },
+                    label = { Text(s.serverUrl) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -565,7 +571,7 @@ fun QuickAddTab(
                 OutlinedTextField(
                     value = headers,
                     onValueChange = onHeadersChange,
-                    label = { Text("Headers (JSON 格式)") },
+                    label = { Text(s.headersLabel) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     maxLines = 4
@@ -581,16 +587,17 @@ fun JsonImportTab(
     onJsonInputChange: (String) -> Unit,
     onParse: () -> Unit
 ) {
+    val s = appStrings()
     Column {
         Text(
-            text = "粘贴 MCP 服务器 JSON 配置",
+            text = s.pasteMcpJsonHint,
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = jsonInput,
             onValueChange = onJsonInputChange,
-            label = { Text("JSON 配置") },
+            label = { Text(s.jsonConfig) },
             modifier = Modifier.fillMaxWidth().height(200.dp),
             maxLines = 10
         )
@@ -600,7 +607,7 @@ fun JsonImportTab(
             enabled = jsonInput.isNotEmpty(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("解析并添加")
+            Text(s.parseAndAdd)
         }
     }
 }
@@ -611,9 +618,10 @@ fun DxtImportTab(
     server: McpServer?,
     onSelectFile: () -> Unit
 ) {
+    val s = appStrings()
     Column {
         Text(
-            text = "选择 DXT 文件 (ZIP 格式)",
+            text = s.selectDxtFile,
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -623,7 +631,7 @@ fun DxtImportTab(
         ) {
             Icon(Icons.Default.FolderOpen, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("选择文件")
+            Text(s.selectFile)
         }
 
         if (server != null) {
@@ -636,17 +644,17 @@ fun DxtImportTab(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "解析结果",
+                        text = s.parseResult,
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("名称: ${server.name}")
-                    Text("类型: ${server.connectionType.uppercase()}")
+                    Text("${s.name}: ${server.name}")
+                    Text("${s.type}: ${server.connectionType.uppercase()}")
                     if (server.command.isNotEmpty()) {
-                        Text("命令: ${server.command}")
+                        Text("${s.command}: ${server.command}")
                     }
                     if (server.args.isNotEmpty()) {
-                        Text("参数: ${server.args}")
+                        Text("${s.arguments}: ${server.args}")
                     }
                     if (server.url.isNotEmpty()) {
                         Text("URL: ${server.url}")
@@ -663,9 +671,10 @@ fun McpbImportTab(
     server: McpServer?,
     onSelectFile: () -> Unit
 ) {
+    val s = appStrings()
     Column {
         Text(
-            text = "选择 mcpb 文件 (二进制包)",
+            text = s.selectMcpbFile,
             style = MaterialTheme.typography.bodyMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -675,7 +684,7 @@ fun McpbImportTab(
         ) {
             Icon(Icons.Default.FolderOpen, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("选择文件")
+            Text(s.selectFile)
         }
 
         if (server != null) {
@@ -688,17 +697,17 @@ fun McpbImportTab(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "解析结果",
+                        text = s.parseResult,
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("名称: ${server.name}")
-                    Text("类型: ${server.connectionType.uppercase()}")
+                    Text("${s.name}: ${server.name}")
+                    Text("${s.type}: ${server.connectionType.uppercase()}")
                     if (server.command.isNotEmpty()) {
-                        Text("命令: ${server.command}")
+                        Text("${s.command}: ${server.command}")
                     }
                     if (server.args.isNotEmpty()) {
-                        Text("参数: ${server.args}")
+                        Text("${s.arguments}: ${server.args}")
                     }
                     if (server.url.isNotEmpty()) {
                         Text("URL: ${server.url}")
@@ -720,18 +729,19 @@ fun ToolTestDialog(
     var toolArgs by remember { mutableStateOf("") }
     var testResult by remember { mutableStateOf("") }
     var isTesting by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     val tools = viewModel.getToolsForServer(server.id.toString())
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("测试工具 - ${server.name}") },
+        title = { Text(String.format(s.testToolTitle, server.name)) },
         text = {
             Column {
                 if (tools.isEmpty()) {
-                    Text("暂无可用工具")
+                    Text(s.noAvailableTools)
                 } else {
-                    Text("选择工具:")
+                    Text(s.selectTool)
                     Spacer(modifier = Modifier.height(8.dp))
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 200.dp)
@@ -773,7 +783,7 @@ fun ToolTestDialog(
                     OutlinedTextField(
                         value = toolArgs,
                         onValueChange = { toolArgs = it },
-                        label = { Text("参数 (JSON)") },
+                        label = { Text(s.argsJsonLabel) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4
@@ -806,12 +816,12 @@ fun ToolTestDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text("执行")
+                        Text(s.execute)
                     }
 
                     if (testResult.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("结果:")
+                        Text(s.result)
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -831,7 +841,7 @@ fun ToolTestDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("关闭")
+                Text(s.close)
             }
         }
     )

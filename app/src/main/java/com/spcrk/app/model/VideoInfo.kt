@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.model
+package com.spcrk.app.model
 
 data class VideoInfo(
     val title: String,
@@ -14,7 +14,9 @@ data class VideoQuality(
     val label: String,
     val url: String,
     val resolution: String? = null,
-    val fileSize: Long = 0L
+    val fileSize: Long = 0L,
+    /** 有值代表此畫質為「純影像軌」，需同時下載此音軌並合併。 */
+    val audioUrl: String? = null
 )
 
 enum class Platform(val displayName: String, val domain: String) {

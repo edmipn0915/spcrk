@@ -19,6 +19,7 @@ import com.spcrk.app.data.ModelConfigStore
 import com.spcrk.app.ai.presetModelsByProvider
 import com.spcrk.app.ai.providerDisplayName
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechSecondaryButton
@@ -45,8 +46,8 @@ private fun providerTags(provider: String): List<String> =
 private fun providerNote(provider: String): String? =
     com.spcrk.app.ai.providerNotes[provider]
 
-private fun maskKey(key: String): String =
-    if (key.isBlank()) "未设置"
+private fun maskKey(key: String, notSetLabel: String): String =
+    if (key.isBlank()) notSetLabel
     else if (key.length <= 8) "••••••••"
     else "${key.take(4)}••••••••${key.takeLast(4)}"
 
@@ -62,6 +63,7 @@ fun ProviderSettingsScreen(
     var selectedProvider by remember { mutableStateOf<String?>(null) }
     var showAddPresetDialog by remember { mutableStateOf(false) }
     var showAddCustomDialog by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     // 主列表顯示全部供應商（ProviderCatalog 60 家），未配置的顯示「尚未配置」
     val providers = com.spcrk.app.ai.ProviderCatalog.all.map { it.id }
@@ -73,10 +75,10 @@ fun ProviderSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI 提供商") },
+                title = { Text(s.providersTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -93,10 +95,10 @@ fun ProviderSettingsScreen(
                     onClick = { showAddPresetDialog = true },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ) {
-                    Icon(Icons.Default.List, contentDescription = "添加预置模型")
+                    Icon(Icons.Default.List, contentDescription = s.addPresetModel)
                 }
                 FloatingActionButton(onClick = { showAddCustomDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "添加自定义模型")
+                    Icon(Icons.Default.Add, contentDescription = s.addCustomModel)
                 }
             }
         }
@@ -117,13 +119,13 @@ fun ProviderSettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "暂无厂商配置",
+                        s.noProvidersConfigured,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "点击右下角按钮添加厂商，点击卡片进入详情",
+                        s.noProvidersHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -208,6 +210,7 @@ private fun ProviderListCard(
 ) {
     val first = models.firstOrNull()
     val hasModels = first != null
+    val s = appStrings()
     TechCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,14 +237,14 @@ private fun ProviderListCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         SuggestionChip(
                             onClick = {},
-                            label = { Text("推荐", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(s.recommended, style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.height(20.dp)
                         )
                     }
                 }
                 Text(
-                    if (hasModels) "${models.size} 个模型 · ${first?.baseUrl ?: ""}"
-                    else "尚未配置 · 点击添加模型",
+                    if (hasModels) String.format(s.modelCountFormat, models.size, first?.baseUrl ?: "")
+                    else s.notConfiguredAddModel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -254,7 +257,7 @@ private fun ProviderListCard(
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "进入详情",
+                contentDescription = s.enterDetails,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -280,6 +283,7 @@ private fun ProviderDetailScreen(
     var showAddPresetDialog by remember { mutableStateOf(false) }
     var isFetching by remember { mutableStateOf(false) }
     var fetchResult by remember { mutableStateOf<FetchResult?>(null) }
+    val s = appStrings()
 
     fun refresh() {
         models = store.getModelsByProvider(provider)
@@ -296,7 +300,7 @@ private fun ProviderDetailScreen(
                 title = { Text(providerDisplayName(provider)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -330,9 +334,9 @@ private fun ProviderDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("启用该厂商", style = MaterialTheme.typography.titleMedium)
+                            Text(s.enableProvider, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "默认关闭，开启后该厂商的模型才可用",
+                                s.enableProviderDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -356,12 +360,12 @@ private fun ProviderDetailScreen(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "API 配置",
+                                s.apiConfig,
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.weight(1f)
                             )
                             TechSecondaryButton(
-                                text = "编辑",
+                                text = s.edit,
                                 onClick = { showEditDialog = true },
                                 modifier = Modifier.height(36.dp)
                             )
@@ -374,7 +378,7 @@ private fun ProviderDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            "API Key: ${maskKey(apiKey)}",
+                            "API Key: ${maskKey(apiKey, s.notConfigured)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -389,24 +393,24 @@ private fun ProviderDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TechSecondaryButton(
-                        text = "预置模型",
+                        text = s.presetModels,
                         onClick = { showAddPresetDialog = true },
                         modifier = Modifier.weight(1f)
                     )
                     TechPrimaryButton(
-                        text = if (isFetching) "获取中" else "获取模型",
+                        text = if (isFetching) s.fetching else s.fetchModels,
                         onClick = {
                             scope.launch {
                                 isFetching = true
                                 try {
                                     val fetched = store.fetchModelsFromApi(provider, baseUrl, apiKey)
                                     if (fetched.isEmpty()) {
-                                        snackbarHostState.showSnackbar("未获取到模型列表")
+                                        snackbarHostState.showSnackbar(s.noModelsFetched)
                                     } else {
                                         fetchResult = FetchResult(provider, fetched)
                                     }
                                 } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar(e.message ?: "获取模型失败")
+                                    snackbarHostState.showSnackbar(e.message ?: s.fetchModelsFailed)
                                 } finally {
                                     isFetching = false
                                 }
@@ -451,7 +455,7 @@ private fun ProviderDetailScreen(
             // 模型列表标题
             item {
                 Text(
-                    "模型 (${models.size})",
+                    String.format(s.modelsTitleFormat, models.size),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -459,7 +463,7 @@ private fun ProviderDetailScreen(
             if (models.isEmpty()) {
                 item {
                     Text(
-                        "暂无模型，点击上方按钮添加预置模型或从 API 获取",
+                        s.noModelsHint,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -533,7 +537,7 @@ private fun ProviderDetailScreen(
                 store.addModelsForProvider(result.provider, baseUrl, apiKey, result.models)
                 refresh()
                 fetchResult = null
-                scope.launch { snackbarHostState.showSnackbar("已添加 ${result.models.size} 个模型") }
+                scope.launch { snackbarHostState.showSnackbar(String.format(s.modelsAddedFormat, result.models.size)) }
             }
         )
     }
@@ -547,6 +551,7 @@ private fun ModelEntryRow(
     onSetDefault: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val s = appStrings()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -568,7 +573,7 @@ private fun ModelEntryRow(
         if (tags.contains("free")) {
             AssistChip(
                 onClick = {},
-                label = { Text("免费", style = MaterialTheme.typography.labelSmall) },
+                label = { Text(s.free, style = MaterialTheme.typography.labelSmall) },
                 modifier = Modifier.height(24.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -576,7 +581,7 @@ private fun ModelEntryRow(
         if (model.isDefault) {
             AssistChip(
                 onClick = onSetDefault,
-                label = { Text("默认") }
+                label = { Text(s.default) }
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -587,7 +592,7 @@ private fun ModelEntryRow(
         IconButton(onClick = onDelete) {
             Icon(
                 Icons.Outlined.Delete,
-                contentDescription = "删除",
+                contentDescription = s.delete,
                 tint = MaterialTheme.colorScheme.error
             )
         }
@@ -604,6 +609,7 @@ private fun AddPresetModelDialog(
     var provider by remember { mutableStateOf(providers.firstOrNull() ?: "") }
     var selected by remember { mutableStateOf(setOf<String>()) }
     var providerExpanded by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     val availableModels = presetModelsByProvider[provider].orEmpty()
     val existingModels = store.getModelsByProvider(provider).map { it.modelName }.toSet()
@@ -611,12 +617,12 @@ private fun AddPresetModelDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("添加预置模型") },
+        title = { Text(s.addPresetModel) },
         text = {
             Column {
                 if (providers.isEmpty()) {
                     Text(
-                        "暂无厂商配置，请先通过[添加自定义模型]添加厂商",
+                        s.noProviderConfigHint,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
@@ -629,7 +635,7 @@ private fun AddPresetModelDialog(
                                 value = providerDisplayName(provider),
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("厂商") },
+                                label = { Text(s.provider) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -655,13 +661,13 @@ private fun AddPresetModelDialog(
                     }
                     if (availableModels.isEmpty()) {
                         Text(
-                            "该厂商暂无预置模型清单",
+                            s.noPresetModels,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
                         Text(
-                            "勾选要添加的模型：",
+                            s.selectModelsToAdd,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -694,7 +700,7 @@ private fun AddPresetModelDialog(
                                 if (modelName in existingModels) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "已添加",
+                                        s.alreadyAdded,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
@@ -707,7 +713,7 @@ private fun AddPresetModelDialog(
         },
         confirmButton = {
             TechPrimaryButton(
-                text = "添加",
+                text = s.add,
                 onClick = {
                     if (selected.isNotEmpty()) {
                         onAdd(provider, selected.toList())
@@ -718,7 +724,7 @@ private fun AddPresetModelDialog(
         },
         dismissButton = {
             TechSecondaryButton(
-                text = "取消",
+                text = s.cancel,
                 onClick = onDismiss
             )
         }
@@ -732,14 +738,15 @@ private fun FetchModelsDialog(
     onDismiss: () -> Unit,
     onAddAll: () -> Unit
 ) {
+    val s = appStrings()
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("获取到 ${models.size} 个模型") },
+        title = { Text(String.format(s.fetchedModelsTitle, models.size)) },
         text = {
             Column {
                 Text(
-                    "厂商：${providerDisplayName(provider)}",
+                    "${s.provider}：${providerDisplayName(provider)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -762,7 +769,7 @@ private fun FetchModelsDialog(
                 }
                 if (models.size > 20) {
                     Text(
-                        "等 ${models.size} 个模型",
+                        String.format(s.etcModelsFormat, models.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -771,13 +778,13 @@ private fun FetchModelsDialog(
         },
         confirmButton = {
             TechPrimaryButton(
-                text = "全部添加",
+                text = s.addAll,
                 onClick = onAddAll
             )
         },
         dismissButton = {
             TechSecondaryButton(
-                text = "取消",
+                text = s.cancel,
                 onClick = onDismiss
             )
         }
@@ -795,13 +802,14 @@ private fun AddProviderDialog(
     var apiKey by remember { mutableStateOf("") }
     var modelName by remember { mutableStateOf("gpt-4o-mini") }
     var expanded by remember { mutableStateOf(false) }
+    val s = appStrings()
 
     val providerTypes = com.spcrk.app.ai.ProviderCatalog.all.map { it.id to it.displayName }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("添加自定义模型") },
+        title = { Text(s.addCustomModel) },
         text = {
             Column {
                 ExposedDropdownMenuBox(
@@ -812,7 +820,7 @@ private fun AddProviderDialog(
                         value = providerTypes.find { it.first == provider }?.second ?: "OpenAI",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("厂商类型") },
+                        label = { Text(s.providerType) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -839,7 +847,7 @@ private fun AddProviderDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("名称") },
+                    label = { Text(s.name) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -861,12 +869,12 @@ private fun AddProviderDialog(
                 OutlinedTextField(
                     value = modelName,
                     onValueChange = { modelName = it },
-                    label = { Text("模型名称") },
+                    label = { Text(s.modelName) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "添加后默认关闭，可在详情页打开该厂商",
+                    s.addProviderHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -874,7 +882,7 @@ private fun AddProviderDialog(
         },
         confirmButton = {
             TechPrimaryButton(
-                text = "添加",
+                text = s.add,
                 onClick = {
                     if (name.isNotBlank() && apiKey.isNotBlank() && modelName.isNotBlank()) {
                         val config = ModelConfig(
@@ -892,7 +900,7 @@ private fun AddProviderDialog(
         },
         dismissButton = {
             TechSecondaryButton(
-                text = "取消",
+                text = s.cancel,
                 onClick = onDismiss
             )
         }
@@ -909,11 +917,12 @@ private fun EditProviderDialog(
 ) {
     var newBaseUrl by remember { mutableStateOf(baseUrl) }
     var newApiKey by remember { mutableStateOf(apiKey) }
+    val s = appStrings()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        title = { Text("编辑 ${providerDisplayName(provider)} API 配置") },
+        title = { Text(String.format(s.editProviderConfig, providerDisplayName(provider))) },
         text = {
             Column {
                 OutlinedTextField(
@@ -932,7 +941,7 @@ private fun EditProviderDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "修改后将应用到该厂商下的所有模型",
+                    s.editProviderHint,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -940,7 +949,7 @@ private fun EditProviderDialog(
         },
         confirmButton = {
             TechPrimaryButton(
-                text = "保存",
+                text = s.save,
                 onClick = {
                     if (newBaseUrl.isNotBlank()) {
                         onSave(newBaseUrl, newApiKey)
@@ -950,7 +959,7 @@ private fun EditProviderDialog(
         },
         dismissButton = {
             TechSecondaryButton(
-                text = "取消",
+                text = s.cancel,
                 onClick = onDismiss
             )
         }

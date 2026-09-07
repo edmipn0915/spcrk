@@ -15,51 +15,53 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.spcrk.app.ui.navigation.Screen
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.techRipple
 
 @Composable
 fun AiChatScreen(navController: NavController) {
+    val s = appStrings()
     val features = listOf(
         AiFeature(
             id = "chat",
-            title = "对话",
-            description = "与AI助手智能对话",
+            title = s.aiHubChat,
+            description = s.aiHubChatDesc,
             iconEmoji = "💬",
             route = Screen.Chat.route
         ),
         AiFeature(
             id = "translate",
-            title = "翻译",
-            description = "多语言互译助手",
+            title = s.aiHubTranslate,
+            description = s.aiHubTranslateDesc,
             iconEmoji = "🌐",
             route = Screen.Translate.route
         ),
         AiFeature(
             id = "code",
-            title = "代码助手",
-            description = "编程问题解答",
+            title = s.aiHubCode,
+            description = s.aiHubCodeDesc,
             iconEmoji = "💻",
             route = Screen.CodeAssistant.route
         ),
         AiFeature(
             id = "notes",
-            title = "笔记",
-            description = "记录和管理笔记",
+            title = s.aiHubNotes,
+            description = s.aiHubNotesDesc,
             iconEmoji = "📝",
             route = Screen.Notes.route
         ),
         AiFeature(
             id = "search",
-            title = "搜索",
-            description = "全局搜索功能",
+            title = s.aiHubSearch,
+            description = s.aiHubSearchDesc,
             iconEmoji = "🔍",
             route = Screen.Search.route
         ),
         AiFeature(
             id = "ocr",
-            title = "OCR识别",
-            description = "图片文字识别",
+            title = s.aiHubOcr,
+            description = s.aiHubOcrDesc,
             iconEmoji = "📷",
             route = Screen.Ocr.route
         )
@@ -72,7 +74,7 @@ fun AiChatScreen(navController: NavController) {
             .padding(16.dp)
     ) {
         Text(
-            text = "AI 助手",
+            text = s.aiHubTitle,
             style = MaterialTheme.typography.displayLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 8.dp)

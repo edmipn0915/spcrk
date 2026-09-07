@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +21,7 @@ import com.spcrk.app.ui.theme.LocalSuccessColor
 import com.spcrk.app.ui.theme.TechCard
 import com.spcrk.app.ui.theme.TechPrimaryButton
 import com.spcrk.app.ui.theme.TechSecondaryButton
+import com.spcrk.app.ui.l10n.appStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,14 +30,15 @@ fun ModelManageScreen(
     viewModel: ModelManageViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("模型管理") },
+                title = { Text(s.modelManage) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -50,7 +52,7 @@ fun ModelManageScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "添加模型")
+                Icon(Icons.Default.Add, contentDescription = s.addModel)
             }
         }
     ) { padding ->
@@ -118,6 +120,7 @@ fun PresetProvidersSection(
 ) {
     val presets = PresetModels.presets
     val displayPresets = presets.filter { it.key != "ollama" }
+    val s = appStrings()
 
     TechCard(
         modifier = Modifier
@@ -126,7 +129,7 @@ fun PresetProvidersSection(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "快速添加预设模型",
+                text = s.quickAddPresetModels,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -158,7 +161,7 @@ fun PresetProvidersSection(
             if (!existingProviders.contains("ollama")) {
                 Spacer(modifier = Modifier.height(8.dp))
                 TechSecondaryButton(
-                    text = "发现 Ollama 本地模型",
+                    text = s.discoverOllamaModels,
                     onClick = { onDiscoverOllama("http://localhost:11434") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -178,6 +181,7 @@ fun ModelConfigCard(
     isTesting: Boolean,
     testResult: String
 ) {
+    val s = appStrings()
     TechCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -192,7 +196,7 @@ fun ModelConfigCard(
                 if (isDefault) {
                     SuggestionChip(
                         onClick = {},
-                        label = { Text("默认") },
+                        label = { Text(s.default) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             labelColor = MaterialTheme.colorScheme.onPrimary
@@ -213,23 +217,23 @@ fun ModelConfigCard(
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TechSecondaryButton(
-                    text = if (isTesting) "测试中" else "测试",
+                    text = if (isTesting) s.testing else s.test,
                     onClick = onTest,
                     enabled = !isTesting,
                     modifier = Modifier.height(36.dp)
                 )
                 TechSecondaryButton(
-                    text = "编辑",
+                    text = s.edit,
                     onClick = onEdit,
                     modifier = Modifier.height(36.dp)
                 )
                 TechSecondaryButton(
-                    text = "默认",
+                    text = s.default,
                     onClick = onSetDefault,
                     modifier = Modifier.height(36.dp)
                 )
                 TechSecondaryButton(
-                    text = "删除",
+                    text = s.delete,
                     onClick = onDelete,
                     modifier = Modifier.height(36.dp)
                 )
@@ -260,13 +264,14 @@ fun ModelConfigDialog(
     var temperature by remember { mutableStateOf(config?.temperature?.toString() ?: "0.7") }
     var maxTokens by remember { mutableStateOf(config?.maxTokens?.toString() ?: "4096") }
     var timeout by remember { mutableStateOf(config?.timeout?.toString() ?: "60") }
+    val s = appStrings()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
-                if (config == null) "添加模型" else "编辑模型",
+                if (config == null) s.addModel else s.editModel,
                 color = MaterialTheme.colorScheme.onSurface
             )
         },
@@ -278,13 +283,13 @@ fun ModelConfigDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("名称") },
+                    label = { Text(s.name) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = provider,
                     onValueChange = { provider = it },
-                    label = { Text("提供商") },
+                    label = { Text(s.provider) },
                     singleLine = true
                 )
                 OutlinedTextField(
@@ -302,32 +307,32 @@ fun ModelConfigDialog(
                 OutlinedTextField(
                     value = modelName,
                     onValueChange = { modelName = it },
-                    label = { Text("模型名称") },
+                    label = { Text(s.modelName) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = temperature,
                     onValueChange = { temperature = it },
-                    label = { Text("温度") },
+                    label = { Text(s.temperature) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = maxTokens,
                     onValueChange = { maxTokens = it },
-                    label = { Text("最大 Token") },
+                    label = { Text(s.maxTokens) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = timeout,
                     onValueChange = { timeout = it },
-                    label = { Text("超时(秒)") },
+                    label = { Text(s.timeoutSeconds) },
                     singleLine = true
                 )
             }
         },
         confirmButton = {
             TechPrimaryButton(
-                text = "保存",
+                text = s.save,
                 onClick = {
                     onSave(
                         ModelConfig(
@@ -350,7 +355,7 @@ fun ModelConfigDialog(
         },
         dismissButton = {
             TechSecondaryButton(
-                text = "取消",
+                text = s.cancel,
                 onClick = onDismiss
             )
         }
@@ -364,11 +369,12 @@ fun OllamaModelsDialog(
     onDismiss: () -> Unit,
     onSelectModel: (String) -> Unit
 ) {
+    val s = appStrings()
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
-            Text("选择 Ollama 模型", color = MaterialTheme.colorScheme.onSurface)
+            Text(s.selectOllamaModel, color = MaterialTheme.colorScheme.onSurface)
         },
         text = {
             when {
@@ -379,11 +385,11 @@ fun OllamaModelsDialog(
                     ) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("正在发现本地模型...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(s.discoveringLocalModels, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 models.isEmpty() -> {
-                    Text("未发现可用模型", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(s.noModelsFound, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 else -> {
                     LazyColumn(
@@ -430,7 +436,7 @@ fun OllamaModelsDialog(
         },
         confirmButton = {
             TechSecondaryButton(
-                text = "关闭",
+                text = s.close,
                 onClick = onDismiss
             )
         }

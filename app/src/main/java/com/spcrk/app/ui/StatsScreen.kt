@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.LocalSuccessColor
 import com.spcrk.app.ui.theme.TechCard
 
@@ -34,14 +35,15 @@ fun StatsScreen(
     viewModel: StatsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("用量统计") },
+                title = { Text(s.statsTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -96,26 +98,27 @@ fun StatsScreen(
 
 @Composable
 private fun SummaryCards(totalTokens: Int, totalCost: Double, totalCalls: Int) {
+    val s = appStrings()
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             SummaryCard(
-                title = "总 Token",
+                title = s.totalTokensLabel,
                 value = formatTokenCount(totalTokens),
                 color = MaterialTheme.colorScheme.primary
             )
         }
         item {
             SummaryCard(
-                title = "总费用",
+                title = s.totalCostLabel,
                 value = String.format("$%.4f", totalCost),
                 color = LocalSuccessColor.current
             )
         }
         item {
             SummaryCard(
-                title = "调用次数",
+                title = s.totalCallsLabel,
                 value = totalCalls.toString(),
                 color = MaterialTheme.colorScheme.tertiary
             )
@@ -153,6 +156,7 @@ private fun PeriodSelector(
     selectedPeriod: TimePeriod,
     onPeriodSelected: (TimePeriod) -> Unit
 ) {
+    val s = appStrings()
     TechCard {
         Row(
             modifier = Modifier
@@ -161,17 +165,17 @@ private fun PeriodSelector(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             PeriodChip(
-                label = "今日",
+                label = s.today,
                 isSelected = selectedPeriod == TimePeriod.DAY,
                 onClick = { onPeriodSelected(TimePeriod.DAY) }
             )
             PeriodChip(
-                label = "本周",
+                label = s.thisWeek,
                 isSelected = selectedPeriod == TimePeriod.WEEK,
                 onClick = { onPeriodSelected(TimePeriod.WEEK) }
             )
             PeriodChip(
-                label = "本月",
+                label = s.thisMonth,
                 isSelected = selectedPeriod == TimePeriod.MONTH,
                 onClick = { onPeriodSelected(TimePeriod.MONTH) }
             )
@@ -200,12 +204,13 @@ private fun PeriodChip(
 
 @Composable
 private fun UsageTrendChart(dailyStats: List<DailyUsageStats>, period: TimePeriod) {
+    val s = appStrings()
     TechCard {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Token 用量趋势",
+                text = s.tokenUsageTrendTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
@@ -220,7 +225,7 @@ private fun UsageTrendChart(dailyStats: List<DailyUsageStats>, period: TimePerio
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "暂无数据",
+                        text = s.noData,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -296,12 +301,13 @@ private fun UsageTrendChart(dailyStats: List<DailyUsageStats>, period: TimePerio
 
 @Composable
 private fun ModelDistributionCard(modelStats: List<ModelUsageStats>) {
+    val s = appStrings()
     TechCard {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "按模型分布",
+                text = s.modelDistributionTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
@@ -316,7 +322,7 @@ private fun ModelDistributionCard(modelStats: List<ModelUsageStats>) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "暂无数据",
+                        text = s.noData,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -396,12 +402,13 @@ private fun ModelDistributionCard(modelStats: List<ModelUsageStats>) {
 
 @Composable
 private fun CostEstimateCard(totalCost: Double, totalCalls: Int) {
+    val s = appStrings()
     TechCard {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "费用估算",
+                text = s.costEstimateTitle,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
@@ -414,7 +421,7 @@ private fun CostEstimateCard(totalCost: Double, totalCalls: Int) {
             ) {
                 Column {
                     Text(
-                        text = "当前周期费用",
+                        text = s.currentPeriodCostLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -427,7 +434,7 @@ private fun CostEstimateCard(totalCost: Double, totalCalls: Int) {
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "平均每次调用",
+                        text = s.avgCostPerCallLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -449,7 +456,7 @@ private fun CostEstimateCard(totalCost: Double, totalCalls: Int) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Token 单价参考",
+                    text = s.tokenUnitPriceLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

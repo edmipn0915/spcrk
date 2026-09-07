@@ -1,4 +1,4 @@
-﻿package com.spcrk.app.ui
+package com.spcrk.app.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +18,7 @@ import com.spcrk.app.ai.providerDisplayName
 import com.spcrk.app.data.ModelConfigStore
 import com.spcrk.app.data.SettingsStore
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.TechCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,14 +36,15 @@ fun ModelSettingsScreen(
     val quickModelId by settingsStore.quickModelIdFlow.collectAsState(initial = "")
     val translateModelId by settingsStore.translateModelIdFlow.collectAsState(initial = "")
     val topicNamingModelId by settingsStore.topicNamingModelIdFlow.collectAsState(initial = "")
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("模型设置") },
+                title = { Text(s.modelConfigTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -61,8 +63,8 @@ fun ModelSettingsScreen(
         ) {
             item {
                 ModelSelectorCard(
-                    title = "默认模型",
-                    subtitle = "新建对话时使用的模型",
+                    title = s.defaultModel,
+                    subtitle = s.defaultModelDesc,
                     icon = Icons.Outlined.Chat,
                     configs = configs,
                     selectedId = defaultModelId,
@@ -71,8 +73,8 @@ fun ModelSettingsScreen(
             }
             item {
                 ModelSelectorCard(
-                    title = "快速模型",
-                    subtitle = "快捷回复使用的模型",
+                    title = s.quickModel,
+                    subtitle = s.quickModelDesc,
                     icon = Icons.Outlined.Bolt,
                     configs = configs,
                     selectedId = quickModelId,
@@ -81,8 +83,8 @@ fun ModelSettingsScreen(
             }
             item {
                 ModelSelectorCard(
-                    title = "翻译模型",
-                    subtitle = "翻译功能使用的模型",
+                    title = s.translateModel,
+                    subtitle = s.translateModelDesc,
                     icon = Icons.Outlined.Translate,
                     configs = configs,
                     selectedId = translateModelId,
@@ -91,8 +93,8 @@ fun ModelSettingsScreen(
             }
             item {
                 ModelSelectorCard(
-                    title = "话题命名模型",
-                    subtitle = "自动生成话题标题使用的模型",
+                    title = s.topicNamingModel,
+                    subtitle = s.topicNamingModelDesc,
                     icon = Icons.Outlined.Title,
                     configs = configs,
                     selectedId = topicNamingModelId,
@@ -113,6 +115,7 @@ private fun ModelSelectorCard(
     selectedId: String,
     onSelect: (String) -> Unit
 ) {
+    val s = appStrings()
     var expanded by remember { mutableStateOf(false) }
 
     TechCard(
@@ -142,7 +145,7 @@ private fun ModelSelectorCard(
                 onExpandedChange = { expanded = !expanded }
             ) {
                 OutlinedTextField(
-                    value = configs.find { it.id == selectedId }?.modelName ?: "未选择",
+                    value = configs.find { it.id == selectedId }?.modelName ?: s.notSelected,
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.spcrk.app.getAppContainer
+import com.spcrk.app.ui.l10n.appStrings
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -20,6 +21,7 @@ fun DataSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val s = appStrings()
     val settingsStore = getAppContainer(context).settingsStore
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -33,10 +35,10 @@ fun DataSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("数据管理") },
+                title = { Text(s.dataTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s.back)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -54,15 +56,15 @@ fun DataSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SettingsSection(title = "备份设置", icon = Icons.Outlined.Backup) {
+                SettingsSection(title = s.backupSettings, icon = Icons.Outlined.Backup) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("自动备份", style = MaterialTheme.typography.titleMedium)
+                            Text(s.autoBackup, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "定期自动备份应用数据",
+                                s.autoBackupDesc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -76,7 +78,7 @@ fun DataSettingsScreen(
                     OutlinedTextField(
                         value = backupPath,
                         onValueChange = { settingsStore.setBackupPath(it) },
-                        label = { Text("备份路径") },
+                        label = { Text(s.backupPath) },
                         placeholder = { Text("/storage/emulated/0/Backup") },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -87,17 +89,17 @@ fun DataSettingsScreen(
                     ) {
                         OutlinedButton(onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("备份功能即将推出")
+                                snackbarHostState.showSnackbar(s.backupComingSoon)
                             }
                         }) {
-                            Text("立即备份")
+                            Text(s.backupNow)
                         }
                     }
                 }
             }
 
             item {
-                SettingsSection(title = "云存储 (WebDAV)", icon = Icons.Outlined.Cloud) {
+                SettingsSection(title = s.webDavStorage, icon = Icons.Outlined.Cloud) {
                     OutlinedTextField(
                         value = webDavUrl,
                         onValueChange = { settingsStore.setWebDavUrl(it) },
@@ -109,14 +111,14 @@ fun DataSettingsScreen(
                     OutlinedTextField(
                         value = webDavUser,
                         onValueChange = { settingsStore.setWebDavUser(it) },
-                        label = { Text("用户名") },
+                        label = { Text(s.username) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = webDavPassword,
                         onValueChange = { settingsStore.setWebDavPassword(it) },
-                        label = { Text("密码") },
+                        label = { Text(s.password) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -126,17 +128,17 @@ fun DataSettingsScreen(
                     ) {
                         OutlinedButton(onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("WebDAV 功能即将推出")
+                                snackbarHostState.showSnackbar(s.webDavComingSoon)
                             }
                         }) {
-                            Text("测试连接")
+                            Text(s.testConnection)
                         }
                     }
                 }
             }
 
             item {
-                SettingsSection(title = "数据导入导出", icon = Icons.Outlined.ImportExport) {
+                SettingsSection(title = s.importExport, icon = Icons.Outlined.ImportExport) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -144,33 +146,33 @@ fun DataSettingsScreen(
                         OutlinedButton(
                             onClick = {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("导入功能即将推出")
+                                    snackbarHostState.showSnackbar(s.importComingSoon)
                                 }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Outlined.FileOpen, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("导入")
+                            Text(s.importData)
                         }
                         OutlinedButton(
                             onClick = {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("导出功能即将推出")
+                                    snackbarHostState.showSnackbar(s.exportComingSoon)
                                 }
                             },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Outlined.SaveAlt, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("导出")
+                            Text(s.exportData)
                         }
                     }
                 }
             }
 
             item {
-                SettingsSection(title = "笔记同步", icon = Icons.Outlined.Note) {
+                SettingsSection(title = s.noteSync, icon = Icons.Outlined.Note) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -194,7 +196,7 @@ fun DataSettingsScreen(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "笔记同步功能即将推出",
+                        text = s.noteSyncComingSoon,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -202,9 +204,9 @@ fun DataSettingsScreen(
             }
 
             item {
-                SettingsSection(title = "数据重置", icon = Icons.Outlined.DeleteForever) {
+                SettingsSection(title = s.dataReset, icon = Icons.Outlined.DeleteForever) {
                     Text(
-                        text = "清除所有应用数据，操作不可恢复",
+                        text = s.resetDataWarning,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -212,14 +214,14 @@ fun DataSettingsScreen(
                     Button(
                         onClick = {
                             scope.launch {
-                                snackbarHostState.showSnackbar("数据重置功能即将推出")
+                                snackbarHostState.showSnackbar(s.dataResetComingSoon)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("重置所有数据")
+                        Text(s.resetAllData)
                     }
                 }
             }

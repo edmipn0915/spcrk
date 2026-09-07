@@ -5,7 +5,9 @@ import com.spcrk.app.model.VideoQuality
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import org.jsoup.Jsoup
 import java.util.concurrent.TimeUnit
@@ -65,7 +67,10 @@ abstract class BaseVideoParser : VideoParser {
 class BilibiliParser : BaseVideoParser() {
 
     override suspend fun parse(url: String): VideoInfo {
-        val videoId = extractBilibiliVideoId(url)
+        // b23.tv 短連結先 302 展開成完整網頁網址，後續 API 與下載 Referer 都需用 bilibili.com 網域
+        val effectiveUrl = resolveBilibiliUrl(url)
+        val videoId = VideoUrlParser.extractBilibiliVideoId(effectiveUrl)
+            ?: throw Exception("无法解析B站视频ID，请使用网页端链接（https://www.bilibili.com/video/BVxxx）")
 
         // Get video info
         val infoUrl = "https://api.bilibili.com/x/web-interface/view?bvid=$videoId"
@@ -82,49 +87,116 @@ class BilibiliParser : BaseVideoParser() {
         val duration = data.getLong("duration")
         val cid = data.getLong("cid")
 
-        // Get play URL
-        val playUrl = "https://api.bilibili.com/x/player/playurl?bvid=$videoId&cid=$cid&qn=32&fnval=1"
-        val playResponse = fetchPage(playUrl, "https://www.bilibili.com/video/$videoId")
-        val playJson = JSONObject(playResponse)
+        // 主路徑：DASH 純影像/音軌（可合併出高畫質）；失敗時回退 durl 單軌
+        val qualities = fetchBilibiliDashQualities(videoId, cid)
+            .ifEmpty { fetchBilibiliDurlQualities(videoId, cid) }
 
-        if (playJson.getInt("code") != 0) {
-            throw Exception("获取B站播放地址失败: ${playJson.optString("message", "未知错误")}")
-        }
-
-        val playData = playJson.getJSONObject("data")
-        val durl = playData.optJSONArray("durl")
-        
-        var videoUrl: String? = null
-        if (durl != null && durl.length() > 0) {
-            videoUrl = durl.getJSONObject(0).getString("url")
-        }
-
-        if (videoUrl.isNullOrEmpty()) {
+        if (qualities.isEmpty()) {
             throw Exception("无法获取视频下载地址，可能需要登录或该视频不可用")
         }
 
+        val videoUrl = qualities.first().url
+
         return VideoInfo(
             title = title,
-            url = url,
+            url = effectiveUrl,
             platform = "B站",
             thumbnailUrl = pic,
             duration = duration,
             videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl, "480P")
-            )
+            qualities = qualities
         )
     }
 
-    private fun extractBilibiliVideoId(url: String): String {
-        // 手機 APP 分享的 b23.tv 短連結不含 BV 號，先 302 展開成完整網頁網址再提取
-        val effectiveUrl = if (VideoUrlParser.needsBilibiliRedirect(url)) {
+    /** DASH 雙軌：只留 h264/mp4 純影像 + 最佳 aac 音軌，回傳需合併的畫質清單。 */
+    private fun fetchBilibiliDashQualities(videoId: String, cid: Long): List<VideoQuality> {
+        try {
+            val playUrl = "https://api.bilibili.com/x/player/playurl?bvid=$videoId&cid=$cid&qn=80&fnval=1"
+            val playJson = JSONObject(fetchPage(playUrl, "https://www.bilibili.com/video/$videoId"))
+            if (playJson.getInt("code") != 0) return emptyList()
+            val data = playJson.optJSONObject("data") ?: return emptyList()
+            val dash = data.optJSONObject("dash") ?: return emptyList()
+            val audioUrl = pickBilibiliDashAudio(dash) ?: return emptyList()
+
+            val videoArr = dash.optJSONArray("video") ?: return emptyList()
+            val result = LinkedHashMap<Int, VideoQuality>()
+            for (i in 0 until videoArr.length()) {
+                val v = videoArr.optJSONObject(i) ?: continue
+                val mime = v.optString("mimeType", "")
+                if (!mime.contains("video/mp4") || !mime.contains("avc")) continue
+                if (v.optString("baseUrl").isBlank()) continue
+                val qn = v.optInt("id", 0)
+                if (qn <= 0) continue
+                if (result.containsKey(qn)) continue
+                val (resolution, label) = bilibiliQualityInfo(qn)
+                result[qn] = VideoQuality(label, v.optString("baseUrl"), resolution, v.optLong("size", 0L), audioUrl)
+            }
+            return result.values.sortedByDescending { resolutionHeight(it.resolution) }
+        } catch (_: Exception) {
+            return emptyList()
+        }
+    }
+
+    private fun pickBilibiliDashAudio(dash: JSONObject): String? {
+        val audioArr = dash.optJSONArray("audio") ?: return null
+        var best: JSONObject? = null
+        for (i in 0 until audioArr.length()) {
+            val a = audioArr.optJSONObject(i) ?: continue
+            val mime = a.optString("mimeType", "")
+            if (!mime.contains("audio/mp4") && !mime.contains("mp4a")) continue
+            if (a.optString("baseUrl").isBlank()) continue
+            if (best == null || a.optLong("bandwidth", 0) > best.optLong("bandwidth", 0)) {
+                best = a
+            }
+        }
+        return best?.optString("baseUrl")
+    }
+
+    /** 回退：以多檔 qn 請求 durl（單一含音軌的 progressive 格式）。 */
+    private fun fetchBilibiliDurlQualities(videoId: String, cid: Long): List<VideoQuality> {
+        val qualityMap = LinkedHashMap<Int, VideoQuality>()
+        for (qn in listOf(112, 80, 64, 32, 16)) {
+            try {
+                val playUrl = "https://api.bilibili.com/x/player/playurl?bvid=$videoId&cid=$cid&qn=$qn&fnval=1"
+                val playJson = JSONObject(fetchPage(playUrl, "https://www.bilibili.com/video/$videoId"))
+                if (playJson.getInt("code") != 0) continue
+                val durl = playJson.optJSONObject("data")?.optJSONArray("durl") ?: continue
+                if (durl.length() == 0) continue
+                val item = durl.getJSONObject(0)
+                val streamUrl = item.getString("url")
+                if (streamUrl.isBlank()) continue
+                val actualQn = item.optInt("quality", qn)
+                if (qualityMap.containsKey(actualQn)) continue
+                val (resolution, label) = bilibiliQualityInfo(actualQn)
+                qualityMap[actualQn] = VideoQuality(label, streamUrl, resolution, item.optLong("size", 0L))
+            } catch (_: Exception) {
+                // 單一檔位失敗不影響其他檔位
+            }
+        }
+        return qualityMap.values.sortedByDescending { resolutionHeight(it.resolution) }
+    }
+
+    private fun bilibiliQualityInfo(qn: Int): Pair<String, String> {
+        return when (qn) {
+            16 -> "360P" to "标清"
+            32 -> "480P" to "高清"
+            64 -> "720P" to "高清"
+            80 -> "1080P" to "超清"
+            112 -> "1080P+" to "超清"
+            116 -> "1080P60" to "高帧率"
+            120 -> "4K" to "超清"
+            125 -> "HDR" to "超清"
+            else -> "${qn}P" to "视频"
+        }
+    }
+
+    /** 展開 b23.tv 短連結；非短連結就直接回傳原網址。 */
+    private fun resolveBilibiliUrl(url: String): String {
+        return if (VideoUrlParser.needsBilibiliRedirect(url)) {
             resolveFinalUrl(url)
         } else {
             url
         }
-        return VideoUrlParser.extractBilibiliVideoId(effectiveUrl)
-            ?: throw Exception("无法解析B站视频ID，请使用网页端链接（https://www.bilibili.com/video/BVxxx）")
     }
 }
 
@@ -134,44 +206,89 @@ class YouTubeParser : BaseVideoParser() {
         val videoId = VideoUrlParser.extractYouTubeVideoId(url)
             ?: throw Exception("无法解析YouTube视频ID，请检查链接格式")
 
-        // 使用 java-youtube-downloader 解析器（比 Regex 抓取更穩定）
+        // 使用 InnerTube ANDROID client 解析（現役版本號，避免被 bot-check 攔截）
         return withContext(Dispatchers.IO) {
-            val downloader = com.github.kiulian.downloader.YoutubeDownloader()
-            val response = downloader.getVideoInfo(
-                com.github.kiulian.downloader.downloader.request.RequestVideoInfo(videoId)
-            )
-            if (!response.ok()) {
-                throw Exception("解析YouTube视频失败: ${response.error()?.message ?: "未知错误"}")
-            }
-            val info = response.data() ?: throw Exception("解析YouTube视频失败：返回为空")
-            val details = info.details()
+            try {
+                val requestBody = YouTubeInnerTube.buildRequestBody(videoId)
+                val request = Request.Builder()
+                    .url(YouTubeInnerTube.PLAYER_URL)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("User-Agent", "com.google.android.youtube/${YouTubeInnerTube.CLIENT_VERSION} (Linux; U; Android 12) gzip")
+                    .addHeader("X-Youtube-Client-Name", "3")
+                    .addHeader("X-Youtube-Client-Version", YouTubeInnerTube.CLIENT_VERSION)
+                    .post(requestBody.toRequestBody("application/json".toMediaType()))
+                    .build()
 
-            // 挑選最佳的含音軌畫質（720p 以上優先，避免音訊分離問題）
-            val formats = info.videoWithAudioFormats()
-            if (formats.isEmpty()) {
-                throw Exception("无法获取YouTube下载地址，视频可能受版权保护或不可用")
-            }
-            val format = formats.maxByOrNull { it.height() ?: 0 }
-            val videoUrl = format?.url()
-
-            VideoInfo(
-                title = details.title().replace(" - YouTube", ""),
-                url = url,
-                platform = "YouTube",
-                thumbnailUrl = details.thumbnails().firstOrNull(),
-                duration = details.lengthSeconds().toLong(),
-                videoUrl = videoUrl,
-                qualities = formats.mapNotNull { f ->
-                    val h = f.height()
-                    val label = when {
-                        h == null -> "标准"
-                        h >= 1080 -> "超清"
-                        h >= 720 -> "高清"
-                        else -> "标清"
-                    }
-                    VideoQuality(label, f.url() ?: "", "${h ?: 360}P")
+                val response = client.newCall(request).execute()
+                val json = response.body?.string()
+                    ?: throw Exception("解析YouTube视频失败：返回为空")
+                if (!response.isSuccessful) {
+                    throw Exception("解析YouTube视频失败: HTTP ${response.code}")
                 }
-            )
+
+                val result = YouTubeInnerTube.parsePlayerResponse(json)
+
+                // 高畫質路徑：adaptive「純影像 h264/mp4 + 純音軌 aac/mp4」合併
+                val audioUrl = result.adaptiveAudioFormats
+                    .filter { it.mimeType.contains("audio/mp4") && it.mimeType.contains("mp4a") }
+                    .maxByOrNull { it.itag }?.url
+                val adaptiveVideos = result.adaptiveVideoFormats
+                    .filter {
+                        it.mimeType.contains("video/mp4") &&
+                            (it.mimeType.contains("avc1") || it.mimeType.contains("avc3"))
+                    }
+                    .distinctBy { it.height }
+                    .sortedByDescending { it.height ?: 0 }
+
+                if (audioUrl != null && adaptiveVideos.isNotEmpty()) {
+                    val best = adaptiveVideos.first()
+                    VideoInfo(
+                        title = result.title.replace(" - YouTube", ""),
+                        url = url,
+                        platform = "YouTube",
+                        thumbnailUrl = result.thumbnailUrl,
+                        duration = result.duration,
+                        videoUrl = best.url,
+                        qualities = adaptiveVideos.map { f ->
+                            val h = f.height ?: 0
+                            val label = when {
+                                h >= 1080 -> "超清"
+                                h >= 720 -> "高清"
+                                else -> "标清"
+                            }
+                            VideoQuality(label, f.url, "${h}P", audioUrl = audioUrl)
+                        }
+                    )
+                } else {
+                    // 回退：progressive 單一含音軌格式（一般只有 360P）
+                    val formats = result.progressiveFormats
+                        .distinctBy { it.height }
+                        .sortedByDescending { it.height ?: 0 }
+                    val best = formats.firstOrNull()
+                        ?: throw Exception("无法获取YouTube下载地址，视频可能受版权保护或不可用")
+
+                    VideoInfo(
+                        title = result.title.replace(" - YouTube", ""),
+                        url = url,
+                        platform = "YouTube",
+                        thumbnailUrl = result.thumbnailUrl,
+                        duration = result.duration,
+                        videoUrl = best.url,
+                        qualities = formats.map { f ->
+                            val h = f.height
+                            val label = when {
+                                h == null -> "标准"
+                                h >= 1080 -> "超清"
+                                h >= 720 -> "高清"
+                                else -> "标清"
+                            }
+                            VideoQuality(label, f.url, "${h ?: 360}P")
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                throw Exception("解析YouTube视频失败: ${e.message ?: "未知错误"}")
+            }
         }
     }
 }
@@ -192,10 +309,7 @@ class DouyinParser : BaseVideoParser() {
             platform = "抖音",
             thumbnailUrl = thumbnailUrl,
             videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl ?: url),
-                VideoQuality("标清", videoUrl ?: url)
-            )
+            qualities = listOfNotNull(videoUrl?.let { VideoQuality("默认", it) })
         )
     }
 
@@ -233,10 +347,7 @@ class KuaishouParser : BaseVideoParser() {
             platform = "快手",
             thumbnailUrl = thumbnailUrl,
             videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl ?: url),
-                VideoQuality("标清", videoUrl ?: url)
-            )
+            qualities = listOfNotNull(videoUrl?.let { VideoQuality("默认", it) })
         )
     }
 
@@ -273,10 +384,7 @@ class YoukuParser : BaseVideoParser() {
             platform = "优酷",
             thumbnailUrl = thumbnailUrl,
             videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl ?: url),
-                VideoQuality("标清", videoUrl ?: url)
-            )
+            qualities = listOfNotNull(videoUrl?.let { VideoQuality("默认", it) })
         )
     }
 
@@ -313,10 +421,7 @@ class WeiboParser : BaseVideoParser() {
             platform = "微博",
             thumbnailUrl = thumbnailUrl,
             videoUrl = videoUrl,
-            qualities = listOf(
-                VideoQuality("高清", videoUrl ?: url),
-                VideoQuality("标清", videoUrl ?: url)
-            )
+            qualities = listOfNotNull(videoUrl?.let { VideoQuality("默认", it) })
         )
     }
 
@@ -336,6 +441,13 @@ class WeiboParser : BaseVideoParser() {
         }
         return null
     }
+}
+
+/** 從 "1080P"、"4K" 等解析度字串取出代表高度；無法解析回 0。 */
+private fun resolutionHeight(resolution: String?): Int {
+    if (resolution.isNullOrBlank()) return 0
+    val n = Regex("\\d+").find(resolution)?.value?.toIntOrNull() ?: return 0
+    return if (resolution.contains("K", ignoreCase = true)) n * 1000 else n
 }
 
 open class BaseParser : BaseVideoParser() {

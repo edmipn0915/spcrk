@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.spcrk.app.data.DownloadHistory
+import com.spcrk.app.ui.l10n.appStrings
 import com.spcrk.app.ui.theme.TechCard
 import java.io.File
 
@@ -35,13 +36,14 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val s = appStrings()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "历史记录",
+                        text = s.historyTitle,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
@@ -50,7 +52,7 @@ fun HistoryScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "返回",
+                            contentDescription = s.back,
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -78,7 +80,7 @@ fun HistoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "暂无下载记录",
+                        text = s.noDownloadHistory,
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -117,7 +119,7 @@ fun HistoryScreen(
                                     putExtra(Intent.EXTRA_STREAM, uri)
                                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
+                                context.startActivity(Intent.createChooser(shareIntent, s.shareVideo))
                             },
                             onDeleteClick = { viewModel.showDeleteDialog(history) }
                         )
@@ -144,6 +146,7 @@ private fun HistoryItem(
     onShareClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val s = appStrings()
     TechCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -190,7 +193,7 @@ private fun HistoryItem(
             IconButton(onClick = onShareClick) {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = "分享",
+                    contentDescription = s.share,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -199,7 +202,7 @@ private fun HistoryItem(
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = s.delete,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
@@ -213,6 +216,7 @@ private fun DeleteConfirmDialog(
     onConfirm: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val s = appStrings()
     var deleteFile by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -220,7 +224,7 @@ private fun DeleteConfirmDialog(
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Text(
-                text = "确认删除",
+                text = s.deleteHistoryTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
@@ -228,7 +232,7 @@ private fun DeleteConfirmDialog(
         text = {
             Column {
                 Text(
-                    text = "确定要删除这条下载记录吗？",
+                    text = s.deleteHistoryMessage,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -247,7 +251,7 @@ private fun DeleteConfirmDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "同时删除本地文件",
+                        text = s.deleteLocalFileToo,
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -259,7 +263,7 @@ private fun DeleteConfirmDialog(
                 onClick = { onConfirm(deleteFile) }
             ) {
                 Text(
-                    text = "删除",
+                    text = s.delete,
                     color = MaterialTheme.colorScheme.error
                 )
             }
@@ -267,7 +271,7 @@ private fun DeleteConfirmDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    text = "取消",
+                    text = s.cancel,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
