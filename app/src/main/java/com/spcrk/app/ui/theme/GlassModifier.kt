@@ -1,8 +1,5 @@
 package com.spcrk.app.ui.theme
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,8 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
 /**
@@ -29,11 +24,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Glassmorphism modifier.
  *
- * - API 31+: real background blur via [RenderEffect.createBlurEffect] + graphicsLayer.
- * - API 26–30: degrades gracefully to the translucent surfaceGlass tint (no blur).
+ * 以「半透明 tint + 邊框 + 圓角」模擬液態玻璃。
  *
- * The version guard is critical: referencing RenderEffect on API < 31 causes
- * NoClassDefFoundError at class-verification time on Android 8–10.
+ * 注意：這裡刻意「不」使用 RenderEffect blur。因為 renderEffect 是套在整個 layer 上，
+ * 會把容器內自己畫的圖示/文字也一起糊掉，導致導航欄、抽屜等前景內容模糊難以閱讀。
+ * 背景星雲圖本身就提供玻璃反射質感，因此改為純透色即可，前景內容保持清晰。
  *
  * @param tint optional override for the glass surface color; falls back to
  *   [LocalGlassTint] then MaterialTheme.colorScheme.surfaceGlass.
@@ -50,18 +45,7 @@ fun Modifier.glass(
         Color.White.copy(alpha = 0.6f)
     }
 
-    val blurLayer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.graphicsLayer {
-            renderEffect = RenderEffect
-                .createBlurEffect(20f, 20f, Shader.TileMode.CLAMP)
-                .asComposeRenderEffect()
-        }
-    } else {
-        Modifier
-    }
-
     this
-        .then(blurLayer)
         .clip(shape)
         .background(resolvedTint, shape)
         .border(width = 0.5.dp, color = borderColor, shape = shape)
