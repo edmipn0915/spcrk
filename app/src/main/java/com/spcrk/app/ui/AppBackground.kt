@@ -51,10 +51,11 @@ fun AppBackground(
         }
 
         // 可讀性遮罩：暗色加深、亮色洗白，讓文字/卡片在圖片上前景清晰
+        // 深色 alpha 調高，壓住占位星雲的亮光暈，避免內容區看起來發霧/文字難讀
         val scrim = if (isDark) {
-            Color.Black.copy(alpha = 0.22f)
+            Color.Black.copy(alpha = 0.45f)
         } else {
-            Color.White.copy(alpha = 0.68f)
+            Color.White.copy(alpha = 0.72f)
         }
         Box(
             modifier = Modifier
