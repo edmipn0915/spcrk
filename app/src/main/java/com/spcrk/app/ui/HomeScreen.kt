@@ -15,9 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,14 +35,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spcrk.app.R
 import com.spcrk.app.ui.l10n.appStrings
-import com.spcrk.app.ui.theme.BreathingGlow
 import com.spcrk.app.ui.theme.StaggeredItem
 import com.spcrk.app.ui.theme.TechCard
-import com.spcrk.app.ui.theme.glass
 import com.spcrk.app.ui.theme.techRipple
 import kotlin.random.Random
 
@@ -68,7 +66,7 @@ fun HomeScreen(
             .fillMaxSize()
             .starryBackground() // 星穹背景繪製：纯色基底 + 极淡网格 + 随机星点
     ) {
-        EnergyCoreHeader()
+        AppBrandHeader()
 
         LazyColumn(
             modifier = Modifier
@@ -114,67 +112,26 @@ private data class FeatureItem(
 )
 
 /**
- * 顶部能量核心指示器：120dp 固定高度，毛玻璃背景，中央 Sparck 图标 + 呼吸光晕 + 胶囊状态文字。
+ * 顶部品牌标题：简洁透明、不加卡片/图标，仅显示小巧的软件名。
  */
 @Composable
-private fun EnergyCoreHeader() {
-    val colorScheme = MaterialTheme.colorScheme
-    val s = appStrings()
+private fun AppBrandHeader() {
+    val context = LocalContext.current
+    val appName = remember { context.getString(R.string.app_name) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            // 卡片霧光：先绘制底部垂直渐层（primary 10% → 透明），再叠毛玻璃
-            .background(
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.0f to Color.Transparent,
-                        0.6f to Color.Transparent,
-                        1.0f to colorScheme.primary.copy(alpha = 0.10f)
-                    )
-                )
-            )
-            .glass()
+            .padding(top = 20.dp, bottom = 12.dp),
+        contentAlignment = Alignment.Center
     ) {
-        // 中央内容：图标 + 呼吸光晕 + 胶囊文字
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                BreathingGlow(
-                    modifier = Modifier.size(80.dp),
-                    color = colorScheme.primary,
-                    minAlpha = 0.3f,
-                    maxAlpha = 1.0f
-                )
-                Icon(
-                    imageVector = Icons.Filled.Bolt,
-                    contentDescription = s.homeIconContentDescription,
-                    tint = colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            // 胶囊状状态文字
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = s.homeEngineStatus,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp
-                )
-            }
-        }
+        Text(
+            text = appName,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
     }
 }
 
@@ -237,19 +194,19 @@ private fun FeatureCardItem(
             ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
                     .background(colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = iconEmoji,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     color = colorScheme.onPrimaryContainer
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             Column(
                 modifier = Modifier.weight(1f)
@@ -259,11 +216,12 @@ private fun FeatureCardItem(
                     style = MaterialTheme.typography.titleMedium,
                     color = colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurfaceVariant
+                    color = colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
                 )
             }
 
@@ -271,7 +229,7 @@ private fun FeatureCardItem(
                 imageVector = Icons.Default.KeyboardArrowRight,
                 contentDescription = null,
                 tint = colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
             }
         }
