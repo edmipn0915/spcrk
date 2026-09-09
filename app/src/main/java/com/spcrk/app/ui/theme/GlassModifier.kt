@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -32,11 +33,12 @@ import androidx.compose.ui.unit.dp
  *
  * @param tint optional override for the glass surface color; falls back to
  *   [LocalGlassTint] then MaterialTheme.colorScheme.surfaceGlass.
+ * @param shape optional shape override, defaults to a 20dp rounded corner.
  */
 fun Modifier.glass(
-    tint: Color? = null
+    tint: Color? = null,
+    shape: Shape = RoundedCornerShape(CornerRadiusTokens.m)
 ): Modifier = composed {
-    val shape = RoundedCornerShape(CornerRadiusTokens.m) // cornerLarge = 20dp
     val isDark = isSystemInDarkTheme()
     val resolvedTint = tint ?: LocalGlassTint.current ?: MaterialTheme.colorScheme.surfaceGlass
     val borderColor = if (isDark) {

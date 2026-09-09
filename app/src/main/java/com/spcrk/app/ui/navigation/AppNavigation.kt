@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
@@ -144,8 +145,11 @@ fun AppNavigation() {
         containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
+                // 懸浮液態玻璃膠囊：左右留邊距 + 全圓角(橢圓) + 底部留白，像 iOS 那樣浮在內容之上
                 NavigationBar(
-                    modifier = Modifier.glass(),
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 10.dp)
+                        .glass(shape = RoundedCornerShape(999.dp)),
                     containerColor = Color.Transparent
                 ) {
                     tabs.forEach { tab ->

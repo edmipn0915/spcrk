@@ -16,7 +16,6 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -115,20 +114,21 @@ fun VideoDownloaderTheme(
     val accent = selectedColor ?: if (darkTheme) DarkPrimary else LightPrimary
     val glowColors = GlowColors(accent, if (darkTheme) DarkGlowEnd else LightGlowEnd)
     val successColor = if (darkTheme) DarkSuccess else LightSuccess
-    val statusBarColor = if (darkTheme) DarkStatusBar else LightStatusBar
 
     val typography = scaledTypography(Typography, fontSize / 14f)
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
+            // 状态栏/导航栏设为透明 + edge-to-edge，让页面延伸到状态栏后并上移标题
             val window = (view.context as Activity).window
-            window.statusBarColor = statusBarColor.toArgb()
-            window.navigationBarColor = statusBarColor.toArgb()
-            WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
-            }
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            val controller = WindowCompat.getInsetsController(window, view)
+            // 依主题决定状态栏图标颜色（暗色→浅色图标，亮色→深色图标）
+            controller.isAppearanceLightStatusBars = !darkTheme
+            controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

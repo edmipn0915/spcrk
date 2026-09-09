@@ -71,13 +71,12 @@ fun AiChatScreen(navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Text(
             text = s.aiHubTitle,
             style = MaterialTheme.typography.displayLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 8.dp)
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(24.dp))
