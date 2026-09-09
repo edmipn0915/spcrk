@@ -14,6 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +35,9 @@ fun AboutSettingsScreen(
         }
     }
     val s = appStrings()
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    var checkingUpdate by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -44,7 +53,8 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -161,8 +171,10 @@ modifier = Modifier.techRipple(onClick = onBackClick)) {
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedButton(onClick = {},
-modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
+                        OutlinedButton(
+                            onClick = { checkForUpdate(context, scope, snackbarHostState, s, packageInfo, checkingUpdate) { checkingUpdate = it } },
+                            modifier = Modifier.fillMaxWidth().techRipple(onClick = {})
+                        ) {
                             Icon(Icons.Outlined.SystemUpdate, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(s.checkUpdate)
@@ -200,10 +212,8 @@ modifier = Modifier.fillMaxWidth().techRipple(onClick = { })) {
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        LinkRow("GitHub", "https://github.com/example/spcrk")
-                        LinkRow(s.officialDocsLabel, "https://docs.example.com")
-                        LinkRow(s.privacyPolicyLabel, "https://example.com/privacy")
-                        LinkRow(s.termsOfServiceLabel, "https://example.com/terms")
+                        LinkRow("GitHub", "https://github.com/edmipn0915/spcrk")
+                        LinkRow(s.privacyPolicyLabel, "https://github.com/edmipn0915/spcrk/blob/main/PRIVACY.md")
                     }
                 }
             }
@@ -273,5 +283,41 @@ private fun LinkRow(title: String, url: String) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
+    }
+}
+
+private fun checkForUpdate(
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    s: com.spcrk.app.ui.l10n.AppStrings,
+    packageInfo: android.content.pm.PackageInfo?,
+    currentlyChecking: Boolean,
+    setChecking: (Boolean) -> Unit
+) {
+    if (currentlyChecking) return
+    setChecking(true)
+    scope.launch {
+        val result = withContext(Dispatchers.IO) {
+            runCatching {
+                val client = OkHttpClient()
+                val request = Request.Builder()
+                    .url("https://api.github.com/repos/edmipn0915/spcrk/releases/latest")
+                    .addHeader("Accept", "application/vnd.github.v3+json")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@use "error"
+                    JSONObject(response.body?.string() ?: "").optString("tag_name", "")
+                }
+            }.getOrDefault("error")
+        }
+        setChecking(false)
+        val currentVersion = packageInfo?.versionName ?: "1.0.0"
+        when {
+            result == "error" -> snackbarHostState.showSnackbar("检查更新失败")
+            result.isBlank() -> snackbarHostState.showSnackbar(s.updateIsLatest)
+            result == currentVersion -> snackbarHostState.showSnackbar(s.updateIsLatest)
+            else -> snackbarHostState.showSnackbar(String.format(s.updateAvailableFormat, result))
+        }
     }
 }

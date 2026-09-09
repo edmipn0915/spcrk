@@ -300,6 +300,9 @@ interface AppStrings {
     val targetSdkLabel: String
     val actionsTitle: String
     val checkUpdate: String
+    val checkingUpdate: String
+    val updateIsLatest: String
+    val updateAvailableFormat: String
     val exportDiagnostics: String
     val feedback: String
     val relatedLinksTitle: String
@@ -775,6 +778,9 @@ object AppStringsCatalog {
         override val targetSdkLabel = "目标 SDK"
         override val actionsTitle = "操作"
         override val checkUpdate = "检查更新"
+        override val checkingUpdate = "正在检查更新…"
+        override val updateIsLatest = "已是最新版本"
+        override val updateAvailableFormat = "发现新版本 %1\$s"
         override val exportDiagnostics = "导出诊断包"
         override val feedback = "意见反馈"
         override val relatedLinksTitle = "相关链接"
@@ -1225,6 +1231,9 @@ object AppStringsCatalog {
         override val targetSdkLabel = "目標 SDK"
         override val actionsTitle = "操作"
         override val checkUpdate = "檢查更新"
+        override val checkingUpdate = "正在檢查更新…"
+        override val updateIsLatest = "已是最新版本"
+        override val updateAvailableFormat = "發現新版本 %1\$s"
         override val exportDiagnostics = "匯出診斷包"
         override val feedback = "意見回饋"
         override val relatedLinksTitle = "相關連結"
@@ -1675,6 +1684,9 @@ object AppStringsCatalog {
         override val targetSdkLabel = "Target SDK"
         override val actionsTitle = "Actions"
         override val checkUpdate = "Check for Updates"
+        override val checkingUpdate = "Checking for updates…"
+        override val updateIsLatest = "You are on the latest version"
+        override val updateAvailableFormat = "New version %1\$s available"
         override val exportDiagnostics = "Export Diagnostics"
         override val feedback = "Feedback"
         override val relatedLinksTitle = "Related Links"
@@ -2125,6 +2137,9 @@ object AppStringsCatalog {
         override val targetSdkLabel = "ターゲット SDK"
         override val actionsTitle = "操作"
         override val checkUpdate = "アップデートを確認"
+        override val checkingUpdate = "アップデートを確認中…"
+        override val updateIsLatest = "最新バージョンです"
+        override val updateAvailableFormat = "新しいバージョン %1\$s があります"
         override val exportDiagnostics = "診断パッケージをエクスポート"
         override val feedback = "フィードバック"
         override val relatedLinksTitle = "関連リンク"
